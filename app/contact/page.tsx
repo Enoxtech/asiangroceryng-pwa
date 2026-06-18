@@ -9,26 +9,26 @@ const contactInfo = [
   {
     Icon: Phone,
     label: 'Phone',
-    value: '+234 800 000 0000',
-    href: 'tel:+2348000000000',
+    value: '+2347076930636',
+    href: 'tel:+2347076930636',
   },
   {
     Icon: Mail,
     label: 'Email',
-    value: 'hello@asiangroceryng.com',
-    href: 'mailto:hello@asiangroceryng.com',
+    value: 'asiangroceryng@gmail.com',
+    href: 'mailto:asiangroceryng@gmail.com',
   },
   {
     Icon: Clock,
     label: 'Business Hours',
-    value: 'Mon–Sat: 8am – 6pm WAT',
+    value: 'Mon–Sat: 12pm – 4pm WAT',
     href: null,
   },
   {
     Icon: MapPin,
     label: 'Location',
-    value: 'Lagos, Nigeria (Nationwide delivery)',
-    href: null,
+    value: 'Store F11 Ikeja Town-Square Alausa, Lagos',
+    href: 'https://maps.google.com/?q=131+Obafemi+Awolowo+way+Ikeja+Lagos',
   },
 ];
 

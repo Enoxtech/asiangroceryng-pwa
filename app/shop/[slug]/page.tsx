@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Heart, ShoppingCart, Zap, MessageCircle, HelpCircle, ChevronDown, ChevronUp, Star, Truck, RotateCcw, Thermometer } from 'lucide-react';
 import { getProductBySlug, getRelatedProducts } from '@/data/products';
 import { useCartStore } from '@/store/cartStore';
@@ -45,10 +45,22 @@ const spiceLabels = {
   'very-hot': { label: 'Very Hot', emoji: '🌶️🌶️' },
 };
 
-export default function ProductDetailPage({ params }: { params: { slug: string } }) {
-  const found = getProductBySlug(params.slug);
-  if (!found) notFound();
+export default function ProductDetailPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const found = getProductBySlug(slug);
   const product = found!;
+
+  if (!found) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
+        <div className="text-6xl">🍜</div>
+        <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
+        <Link href="/shop" className="px-6 py-3 bg-brand-red text-white font-bold rounded-xl hover:bg-red-700 transition-colors">
+          Back to Shop
+        </Link>
+      </div>
+    );
+  }
 
   const related = getRelatedProducts(product);
   const { addItem, openCart } = useCartStore();

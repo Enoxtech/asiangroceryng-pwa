@@ -6,10 +6,17 @@ import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { deliveryAreas } from '@/data/products';
 import { Button } from '@/components/ui/Button';
-import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X } from 'lucide-react';
+import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X, Truck, Store, MapPin, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
+type DeliveryMethod = 'ship' | 'pickup';
+
+const PICKUP_STORE = {
+  name: 'Store F11: Ikeja Town-Square',
+  address: '131 Obafemi Awolowo way, Ikeja, Lagos, 10001',
+  hours: 'Pick up time 12:00PM – 4:00PM Mon–Sat',
+};
 
 const PROMO_CODES: Record<string, { type: 'percent' | 'fixed' | 'shipping'; value: number; label: string; minOrder?: number }> = {
   ASIAN10:      { type: 'percent', value: 10, label: '10% off',      minOrder: 5000 },
@@ -23,6 +30,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const subtotal = totalPrice();
   const [step, setStep] = useState<'details' | 'payment'>('details');
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('ship');
   const [selectedArea, setSelectedArea] = useState(deliveryAreas[0]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pay_on_delivery');
   const [loading, setLoading] = useState(false);
@@ -54,7 +62,7 @@ export default function CheckoutPage() {
     : appliedCoupon.value
     : 0;
 
-  const deliveryFee = appliedCoupon?.type === 'shipping' ? 0 : selectedArea.fee;
+  const deliveryFee = deliveryMethod === 'pickup' ? 0 : (appliedCoupon?.type === 'shipping' ? 0 : selectedArea.fee);
   const total = subtotal + deliveryFee - (appliedCoupon?.type !== 'shipping' ? discount : 0);
 
   function update(field: string, value: string) {
@@ -121,24 +129,79 @@ export default function CheckoutPage() {
             <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
             <input value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="you@email.com" type="email" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
           </div>
+          {deliveryMethod === 'ship' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Address *</label>
-            <textarea required value={form.address} onChange={(e) => update('address', e.target.value)} placeholder="House number, street name, area..." rows={2} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red resize-none" />
+            <textarea required={deliveryMethod === 'ship'} value={form.address} onChange={(e) => update('address', e.target.value)} placeholder="House number, street name, area..." rows={2} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red resize-none" />
           </div>
+          )}
+          {/* Delivery method toggle */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Area *</label>
-            <select
-              value={selectedArea.id}
-              onChange={(e) => setSelectedArea(deliveryAreas.find((a) => a.id === e.target.value) ?? deliveryAreas[0])}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
-            >
-              {deliveryAreas.map((area) => (
-                <option key={area.id} value={area.id}>
-                  {area.name} — {formatPrice(area.fee)} · {area.estimatedDays}
-                </option>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Delivery</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+              {([
+                { id: 'ship' as DeliveryMethod, label: 'Ship', Icon: Truck },
+                { id: 'pickup' as DeliveryMethod, label: 'Pickup', Icon: Store },
+              ]).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setDeliveryMethod(id)}
+                  className={cn(
+                    'flex items-center justify-center gap-2 py-3 rounded-[10px] text-sm font-semibold transition-all',
+                    deliveryMethod === id
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
+
+          {deliveryMethod === 'pickup' ? (
+            /* Pickup location card */
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Pickup Location</label>
+              <div className="border-2 border-brand-red rounded-xl p-4 bg-red-50">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-brand-red flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="h-3 w-3 rounded-full bg-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{PICKUP_STORE.name}</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <MapPin className="h-3 w-3 shrink-0" /> {PICKUP_STORE.address}
+                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Clock className="h-3 w-3 shrink-0" /> {PICKUP_STORE.hours}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full shrink-0">FREE</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Ship: delivery area selector */
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Area *</label>
+              <select
+                value={selectedArea.id}
+                onChange={(e) => setSelectedArea(deliveryAreas.find((a) => a.id === e.target.value) ?? deliveryAreas[0])}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+              >
+                {deliveryAreas.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name} — {formatPrice(area.fee)} · {area.estimatedDays}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Order Notes (optional)</label>
             <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Any special instructions..." rows={2} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red resize-none" />
@@ -183,8 +246,8 @@ export default function CheckoutPage() {
           <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
             <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
             <div className="flex justify-between text-gray-600">
-              <span>Delivery ({selectedArea.name})</span>
-              {deliveryFee === 0 && appliedCoupon?.type === 'shipping'
+              <span>Delivery ({deliveryMethod === 'pickup' ? 'Pickup' : selectedArea.name})</span>
+              {deliveryFee === 0
                 ? <span className="text-green-600 font-semibold">FREE</span>
                 : <span>{formatPrice(deliveryFee)}</span>}
             </div>

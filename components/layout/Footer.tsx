@@ -49,7 +49,7 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-[var(--border-color)] mt-16" style={{ background: 'var(--bg-offset)' }}>
+    <footer className="border-t border-[var(--border-color)] mt-16 pb-20 lg:pb-0" style={{ background: 'var(--bg-offset)' }}>
 
       {/* Feature strip */}
       <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-2 lg:grid-cols-4 gap-6">

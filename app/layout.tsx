@@ -1,12 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Manrope, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { Header } from '@/components/layout/Header';
-import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { StorefrontShell } from '@/components/layout/StorefrontShell';
 import { CartDrawer } from '@/components/cart/CartDrawer';
-import { Footer } from '@/components/layout/Footer';
 import { ToastContainer } from '@/components/ui/Toast';
+import { BackToTop } from '@/components/ui/BackToTop';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -76,13 +74,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="bg-blob bg-blob-2" />
           <div className="bg-blob bg-blob-3" />
         </div>
-        <AnnouncementBar />
-        <Header />
-        <main className="flex-1 w-full max-w-[1440px] mx-auto">{children}</main>
-        <Footer />
-        <BottomNav />
+        <StorefrontShell>{children}</StorefrontShell>
         <CartDrawer />
         <ToastContainer />
+        <BackToTop />
       </body>
     </html>
   );

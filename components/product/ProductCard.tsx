@@ -21,6 +21,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const { toggleItem, isInWishlist } = useWishlistStore();
   const { show: showToast } = useToastStore();
   const [added, setAdded] = useState(false);
+  const [imgSrc, setImgSrc] = useState(product.images[0]);
   const wishlisted = isInWishlist(product.id);
 
   function handleAddToCart(e: React.MouseEvent) {
@@ -60,11 +61,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
       {/* Image area */}
       <div className="relative aspect-square overflow-hidden rounded-t-[28px] bg-[var(--surface)]">
         <Image
-          src={product.images[0]}
+          src={imgSrc}
           alt={product.name}
           fill
           className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 16vw"
+          onError={() => setImgSrc(`https://placehold.co/600x600/f8ece8/c41e3a?text=${encodeURIComponent(product.name)}`)}
+          unoptimized={imgSrc.includes('placehold.co')}
         />
 
         {/* Badges */}
