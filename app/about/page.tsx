@@ -1,17 +1,43 @@
 import Link from 'next/link';
-import { Truck, ShieldCheck, Star, Users, MapPin, MessageCircle } from 'lucide-react';
+import { Truck, ShieldCheck, Star, Users, MapPin, MessageCircle, ChefHat, Heart } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Us',
-  description: "Learn the story behind Asian Grocery NG — Nigeria's trusted source for authentic Asian groceries.",
+  title: 'About Us | Asian Grocery NG',
+  description: "Welcome to Asian Grocery NG — Nigeria's premier destination for authentic Asian groceries from Japan, Korea, China, Vietnam and Thailand.",
 };
 
 const values = [
-  { Icon: Star, title: 'Authentic Quality', desc: 'Every product is sourced directly from trusted suppliers across Asia. We never compromise on authenticity.' },
-  { Icon: Truck, title: 'Nigeria-Wide Delivery', desc: 'We deliver to Lagos, Abuja, Port Harcourt and everywhere in between — fast and reliably.' },
-  { Icon: ShieldCheck, title: 'Safe & Secure Orders', desc: 'Your orders are carefully packed and quality-checked before dispatch from our Lagos warehouse.' },
-  { Icon: Users, title: 'Community First', desc: 'Built by food lovers, for food lovers. We serve thousands of families and food enthusiasts across Nigeria.' },
+  {
+    Icon: Star,
+    title: 'Authentic Quality',
+    desc: 'Every product is sourced directly from trusted suppliers across Japan, Korea, China, Vietnam and Thailand. We never compromise on authenticity — if it\'s on our shelf, it\'s the real thing.',
+  },
+  {
+    Icon: ChefHat,
+    title: 'Expert Cooking Guidance',
+    desc: 'Our knowledgeable staff are passionate food lovers who can guide you through recipes, ingredient substitutions, and cooking tips — whether you\'re a beginner or a seasoned home chef.',
+  },
+  {
+    Icon: Truck,
+    title: 'Fast Nigeria-Wide Delivery',
+    desc: 'We deliver to Lagos, Abuja, Port Harcourt and everywhere in between. Orders are carefully packed and dispatched quickly so your ingredients arrive fresh and ready to cook.',
+  },
+  {
+    Icon: Heart,
+    title: 'Community & Passion',
+    desc: 'Built by food lovers, for food lovers. We serve thousands of families, food enthusiasts, restaurants and home cooks across Nigeria who share our love for Asian cuisine.',
+  },
+  {
+    Icon: ShieldCheck,
+    title: 'Safe & Secure Orders',
+    desc: 'Every item is quality-checked before dispatch from our Lagos store. We take food safety seriously — all products are stored under proper conditions and within date.',
+  },
+  {
+    Icon: Users,
+    title: 'Dedicated Support',
+    desc: 'Have a question? Our team is available via WhatsApp and email to help with orders, product enquiries, and anything else you need — before and after your purchase.',
+  },
 ];
 
 const stats = [
@@ -21,32 +47,46 @@ const stats = [
   { value: '4.8★', label: 'Average Rating' },
 ];
 
+const countries = [
+  { flag: '🇯🇵', name: 'Japan', desc: 'Ramen, miso, matcha, wasabi, sushi essentials & more' },
+  { flag: '🇰🇷', name: 'Korea', desc: 'Kimchi, gochujang, BBQ marinades, tteok & Korean snacks' },
+  { flag: '🇨🇳', name: 'China', desc: 'Soy sauces, sesame oil, dumplings, dim sum & noodles' },
+  { flag: '🇻🇳', name: 'Vietnam', desc: 'Pho noodles, fish sauce, rice paper & lemongrass pastes' },
+  { flag: '🇹🇭', name: 'Thailand', desc: 'Curry pastes, coconut milk, pad thai kits & jasmine rice' },
+];
+
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-14">
 
-      {/* Hero section */}
+      {/* Hero */}
       <div className="text-center space-y-4 pt-4">
         <p className="text-xs font-label uppercase tracking-widest text-[var(--accent)]">Our Story</p>
         <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] leading-tight font-display">
-          Bringing Asia&apos;s Finest<br />Flavours to Nigeria
+          Welcome to Asian Grocery NG
         </h1>
-        <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body italic">
-          Asian Grocery NG was born from a simple craving — authentic Asian ingredients, available right here in Nigeria. We&apos;ve grown from a passion project into the country&apos;s most trusted Asian grocery destination.
+        <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
+          Your one-stop destination for authentic Asian groceries right here in Nigeria. From the bustling markets of Tokyo
+          to the street food stalls of Seoul, Bangkok and Hanoi — we bring the true taste of Asia straight to your kitchen.
+        </p>
+        <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
+          Whether you&apos;re looking to recreate a favourite dish, discover new flavours, or simply stock your pantry with quality
+          Asian ingredients, our team is here to help you every step of the way.
         </p>
       </div>
 
-      {/* Values grid */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        {values.map(({ Icon, title, desc }) => (
-          <div key={title} className="p-6 rounded-[28px] glass border border-[var(--border-color)]">
-            <div className="h-10 w-10 rounded-[16px] flex items-center justify-center mb-4" style={{ background: 'var(--green)', color: 'white' }}>
-              <Icon className="h-5 w-5" />
+      {/* Countries we source from */}
+      <div>
+        <p className="text-xs font-label uppercase tracking-widest text-center text-[var(--accent)] mb-6">Products Sourced From</p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {countries.map((c) => (
+            <div key={c.name} className="p-4 rounded-[20px] glass border border-[var(--border-color)] text-center group hover:border-[var(--accent)] transition-colors">
+              <span className="text-3xl block mb-2">{c.flag}</span>
+              <p className="font-bold text-sm text-[var(--text-primary)] font-display">{c.name}</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1 leading-relaxed font-display hidden sm:block">{c.desc}</p>
             </div>
-            <h3 className="font-bold text-[var(--text-primary)] mb-1.5 font-display">{title}</h3>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-display">{desc}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Stats */}
@@ -59,15 +99,37 @@ export default function AboutPage() {
         ))}
       </div>
 
-      {/* Story section */}
+      {/* Values grid */}
+      <div>
+        <p className="text-xs font-label uppercase tracking-widest text-center text-[var(--accent)] mb-6">What We Stand For</p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {values.map(({ Icon, title, desc }) => (
+            <div key={title} className="p-6 rounded-[28px] glass border border-[var(--border-color)]">
+              <div className="h-10 w-10 rounded-[16px] flex items-center justify-center mb-4" style={{ background: 'var(--green)', color: 'white' }}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-bold text-[var(--text-primary)] mb-1.5 font-display">{title}</h3>
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-display">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Staff / Cooking Tips section */}
       <div className="rounded-[32px] overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a1814 0%, #2a2720 100%)' }}>
-        <div className="px-8 py-12 sm:py-14 text-center space-y-4">
-          <p className="text-xs font-label uppercase tracking-widest" style={{ color: 'var(--accent)' }}>Why Choose Us</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white font-display">Your Asian Kitchen, Delivered</h2>
-          <p className="text-white/55 max-w-lg mx-auto text-sm leading-relaxed font-display">
-            From Japanese ramen to Korean BBQ, Chinese sauces to Thai curry paste — we curate only the best. Every product is checked for quality, freshness and authenticity before it reaches you.
+        <div className="px-8 py-12 sm:py-14 space-y-5">
+          <p className="text-xs font-label uppercase tracking-widest" style={{ color: 'var(--accent)' }}>Our Team</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white font-display">More Than Just a Grocery Store</h2>
+          <p className="text-white/60 max-w-lg text-sm leading-relaxed font-display">
+            At Asian Grocery NG, we believe shopping for ingredients should be an inspiring experience. Our staff don&apos;t
+            just process orders — they&apos;re passionate about Asian food and culture, and love sharing that knowledge with you.
           </p>
-          <div className="flex flex-wrap gap-3 justify-center pt-3">
+          <p className="text-white/60 max-w-lg text-sm leading-relaxed font-display">
+            Need advice on which miso to pick for your ramen? Unsure which Korean chilli paste works best for your recipe?
+            Curious about the difference between Vietnamese and Thai fish sauce? Just ask — our team is always ready to help
+            with cooking tips, product recommendations, and recipe ideas.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/shop"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-[44px] text-sm font-bold font-display transition-all hover:scale-[1.03] active:scale-95"
@@ -75,14 +137,28 @@ export default function AboutPage() {
             >
               Browse Products
             </Link>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-[44px] text-sm font-semibold bg-white/10 text-white border border-white/15 hover:bg-white/18 transition-all font-display"
+            <a
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent('Hi! I need help choosing some products.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-[44px] text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-all font-display"
             >
-              Contact Us
-            </Link>
+              <MessageCircle className="h-4 w-4" /> Ask Our Team
+            </a>
           </div>
         </div>
+      </div>
+
+      {/* Mission statement */}
+      <div className="text-center space-y-3 py-4">
+        <p className="text-xs font-label uppercase tracking-widest text-[var(--accent)]">Our Mission</p>
+        <blockquote className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] font-display leading-relaxed max-w-2xl mx-auto">
+          &ldquo;To make authentic Asian flavours accessible to every kitchen in Nigeria.&rdquo;
+        </blockquote>
+        <p className="text-sm text-[var(--text-secondary)] max-w-xl mx-auto font-display">
+          We started Asian Grocery NG because we knew how hard it was to find genuine Asian ingredients locally. Today,
+          we&apos;re proud to serve thousands of customers who trust us to bring them the real thing — fresh, authentic, and always reliable.
+        </p>
       </div>
 
       {/* Location card */}
@@ -91,8 +167,10 @@ export default function AboutPage() {
           <MapPin className="h-5 w-5 text-brand-red" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-[var(--text-primary)] font-display">Based in Lagos, Nigeria</p>
-          <p className="text-sm text-[var(--text-secondary)] font-display">Delivering nationwide — Lagos, Abuja, Port Harcourt &amp; more.</p>
+          <p className="font-semibold text-[var(--text-primary)] font-display">Store F11, Ikeja Town-Square, Lagos</p>
+          <p className="text-sm text-[var(--text-secondary)] font-display">
+            131 Obafemi Awolowo Way, Ikeja · Pickup: 12:00PM–4:00PM Mon–Sat · Delivering nationwide
+          </p>
         </div>
         <a
           href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent('Hi! I have a question about Asian Grocery NG.')}`}
@@ -104,6 +182,7 @@ export default function AboutPage() {
           Chat
         </a>
       </div>
+
     </div>
   );
 }

@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Plus, Check } from 'lucide-react';
+import { Heart, Plus, Check, Eye } from 'lucide-react';
 import { Product } from '@/types';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useQuickViewStore } from '@/store/quickViewStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { useToastStore } from '@/store/toastStore';
@@ -20,6 +21,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const { addItem, openCart } = useCartStore();
   const { toggleItem, isInWishlist } = useWishlistStore();
   const { show: showToast } = useToastStore();
+  const { open: openQuickView } = useQuickViewStore();
   const [added, setAdded] = useState(false);
   const [imgSrc, setImgSrc] = useState(product.images[0]);
   const wishlisted = isInWishlist(product.id);
@@ -93,6 +95,22 @@ export function ProductCard({ product, className }: ProductCardProps) {
           aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <Heart className={cn('h-3.5 w-3.5', wishlisted && 'fill-current')} />
+        </button>
+
+        {/* Quick view button — appears on hover */}
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openQuickView(product); }}
+          className={cn(
+            'absolute bottom-10 left-1/2 -translate-x-1/2',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold font-label uppercase tracking-wide',
+            'bg-[var(--surface-glass-strong)] backdrop-blur-md border border-[var(--border-color)]',
+            'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0',
+            'transition-all duration-200 cursor-pointer whitespace-nowrap'
+          )}
+          style={{ color: 'var(--text-primary)' }}
+          aria-label="Quick view"
+        >
+          <Eye className="h-3 w-3" /> Quick View
         </button>
 
         {/* Country flag */}

@@ -5,15 +5,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, ShoppingBag, Users,
-  Settings, LogOut, ChevronRight, Store,
+  Settings, LogOut, ChevronRight, Store, ImageIcon, LayoutGrid,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
+import { AdminNotifications } from '@/components/ui/AdminNotifications';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', Icon: LayoutDashboard, exact: true },
   { href: '/admin/products', label: 'Products', Icon: Package },
   { href: '/admin/orders', label: 'Orders', Icon: ShoppingBag },
+  { href: '/admin/banners', label: 'Banners', Icon: ImageIcon },
+  { href: '/admin/categories', label: 'Categories', Icon: LayoutGrid },
   { href: '/admin/customers', label: 'Customers', Icon: Users },
   { href: '/admin/settings', label: 'Settings', Icon: Settings },
 ];
@@ -117,6 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
+            <AdminNotifications />
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold text-white font-display">{user.name}</p>
               <p className="text-[10px] text-gray-500 font-display">{user.email}</p>

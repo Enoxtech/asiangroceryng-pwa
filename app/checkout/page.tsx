@@ -8,6 +8,9 @@ import { deliveryAreas } from '@/data/products';
 import { Button } from '@/components/ui/Button';
 import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X, Truck, Store, MapPin, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { buildCustomerConfirmation, openWhatsApp, ADMIN_WHATSAPP, buildAdminAlert } from '@/lib/whatsapp';
+import { useUserNotificationStore } from '@/store/userNotificationStore';
+import { useNotificationStore } from '@/store/notificationStore';
 
 type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
 type DeliveryMethod = 'ship' | 'pickup';
@@ -27,6 +30,8 @@ const PROMO_CODES: Record<string, { type: 'percent' | 'fixed' | 'shipping'; valu
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCartStore();
+  const { addNotification: addUserNotif } = useUserNotificationStore();
+  const { addNotification: addAdminNotif } = useNotificationStore();
   const router = useRouter();
   const subtotal = totalPrice();
   const [step, setStep] = useState<'details' | 'payment'>('details');
@@ -74,21 +79,88 @@ export default function CheckoutPage() {
     setStep('payment');
   }
 
+  function buildOrderDetails(orderId: string) {
+    return {
+      id: orderId,
+      customer: form.name || 'Customer',
+      phone: form.phone,
+      email: form.email,
+      items: items.map((i) => ({ name: i.product.name, quantity: i.quantity, price: i.product.price })),
+      subtotal,
+      deliveryFee,
+      discount: discount > 0 ? discount : undefined,
+      total,
+      area: deliveryMethod === 'pickup' ? 'Store Pickup' : selectedArea.name,
+      address: deliveryMethod === 'pickup' ? 'Store F11, Ikeja Town-Square' : form.address,
+      paymentMethod,
+      notes: form.notes,
+    };
+  }
+
   async function handlePlaceOrder(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
     // TODO: Submit order to Supabase
     await new Promise((r) => setTimeout(r, 1500));
+
+    const orderDetails = buildOrderDetails(orderId);
+
+    // In-app user notification
+    addUserNotif({
+      type: 'order',
+      title: `Order ${orderId} Confirmed!`,
+      body: `Your order for ${items.length} item${items.length > 1 ? 's' : ''} (₦${total.toLocaleString()}) has been placed successfully.`,
+      link: '/orders',
+    });
+
+    // In-app admin notification
+    addAdminNotif({
+      type: 'order',
+      title: 'New Order Received',
+      message: `Order ${orderId} placed by ${form.name || 'Customer'} — ₦${total.toLocaleString()} · ${paymentMethod.replace(/_/g, ' ')}`,
+      actionUrl: '/admin/orders',
+    });
+
+    // WhatsApp customer confirmation
+    if (form.phone) {
+      const customerMsg = buildCustomerConfirmation(orderDetails);
+      openWhatsApp(form.phone, customerMsg);
+    }
+
+    // WhatsApp admin alert
+    const adminMsg = buildAdminAlert(orderDetails);
+    openWhatsApp(ADMIN_WHATSAPP, adminMsg);
+
     clearCart();
-    router.push(`/order-success?order=AGNG-${Date.now().toString().slice(-6)}`);
+    router.push(`/order-success?order=${orderId}`);
   }
 
   function handleWhatsAppOrder() {
-    const itemsList = items.map((i) => `• ${i.product.name} x${i.quantity} — ${formatPrice(i.product.price * i.quantity)}`).join('\n');
-    const message = encodeURIComponent(
-      `🛒 *New Order from Asian Grocery NG*\n\n${itemsList}\n\nSubtotal: ${formatPrice(subtotal)}\nDelivery: ${formatPrice(selectedArea.fee)}\n*Total: ${formatPrice(total)}*\n\nCustomer:\nName: ${form.name}\nPhone: ${form.phone}\nAddress: ${form.address}, ${selectedArea.name}`
-    );
-    window.open(`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${message}`, '_blank');
+    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
+    const orderDetails = buildOrderDetails(orderId);
+    const message = buildCustomerConfirmation(orderDetails);
+
+    // Admin alert
+    const adminMsg = buildAdminAlert(orderDetails);
+    openWhatsApp(ADMIN_WHATSAPP, adminMsg);
+
+    // Customer confirmation
+    window.open(`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent(message)}`, '_blank');
+
+    // In-app notifications
+    addUserNotif({
+      type: 'order',
+      title: `Order ${orderId} via WhatsApp`,
+      body: `Your WhatsApp order for ₦${total.toLocaleString()} has been sent. We'll confirm shortly.`,
+      link: '/orders',
+    });
+    addAdminNotif({
+      type: 'order',
+      title: 'New WhatsApp Order',
+      message: `WhatsApp order ${orderId} from ${form.name || 'Customer'} — ₦${total.toLocaleString()}`,
+      actionUrl: '/admin/orders',
+    });
   }
 
   if (items.length === 0) {

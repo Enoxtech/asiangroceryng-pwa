@@ -26,12 +26,10 @@ export function ProductSection({ title, products, viewAllHref = '/shop' }: Produ
         </Link>
       </div>
 
-      {/* Mobile: horizontal scroll — Tablet+: responsive grid */}
-      <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-3 sm:overflow-visible -mx-1 px-1 sm:mx-0 sm:px-0">
+      {/* Full grid — 2 cols mobile, more on wider screens */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3">
         {products.slice(0, 12).map((product) => (
-          <div key={product.id} className="shrink-0 w-36 sm:w-auto">
-            <ProductCard product={product} />
-          </div>
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </section>

@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ThemeToggle } from './ThemeToggle';
 import { categories } from '@/data/categories';
+import { UserNotifications } from '@/components/ui/UserNotifications';
 
 export function Header() {
   const { totalItems, openCart } = useCartStore();
@@ -37,7 +38,7 @@ export function Header() {
               src="/logo.png"
               alt="Asian Grocery NG"
               fill
-              className="object-contain"
+              className="object-contain logo-adaptive"
               priority
             />
           </div>
@@ -82,6 +83,8 @@ export function Header() {
           </Link>
 
           <ThemeToggle />
+
+          <UserNotifications />
 
           <button
             onClick={openCart}
@@ -149,29 +152,29 @@ export function Header() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-50 bg-black/50 animate-fade-in"
+            className="fixed inset-0 z-[59] bg-black/50 animate-fade-in"
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
 
-          {/* Drawer panel */}
+          {/* Drawer panel — z-[60] beats BottomNav (z-40) and InstallPrompt (z-[61]) */}
           <div
-            className="fixed inset-y-0 left-0 z-50 w-[82vw] max-w-xs flex flex-col animate-slide-in-left lg:hidden overflow-hidden"
-            style={{ background: '#ffffff', boxShadow: '6px 0 40px rgba(0,0,0,0.20)' }}
+            className="fixed top-0 left-0 bottom-0 z-[60] w-[82vw] max-w-xs flex flex-col animate-slide-in-left lg:hidden overflow-hidden"
+            style={{ background: 'var(--bg)', boxShadow: '6px 0 40px rgba(0,0,0,0.35)' }}
           >
             {/* Close button */}
-            <div className="px-5 pt-5 pb-3">
+            <div className="px-5 pt-5 pb-3 shrink-0">
               <button
                 onClick={() => setMenuOpen(false)}
                 aria-label="Close menu"
-                className="p-1 -ml-1 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                className="p-1 -ml-1 rounded-lg hover:bg-[var(--surface)] transition-colors cursor-pointer"
               >
-                <X className="h-5 w-5 text-gray-800" />
+                <X className="h-5 w-5 text-[var(--text-primary)]" />
               </button>
             </div>
 
             {/* Scrollable nav */}
-            <nav className="flex-1 overflow-y-auto px-5 scrollbar-hide">
+            <nav className="flex-1 overflow-y-auto px-5 scrollbar-hide min-h-0">
               {/* Fixed top pages */}
               {[
                 { href: '/', label: 'Home' },
@@ -181,7 +184,7 @@ export function Header() {
                   key={href}
                   href={href}
                   onClick={() => setMenuOpen(false)}
-                  className="block py-[14px] text-[17px] font-bold text-gray-900 border-b border-gray-100 hover:text-brand-red transition-colors"
+                  className="block py-[14px] text-[17px] font-bold text-[var(--text-primary)] border-b border-[var(--border-color)] hover:text-brand-red transition-colors"
                 >
                   {label}
                 </Link>
@@ -193,7 +196,7 @@ export function Header() {
                   key={cat.slug}
                   href={`/shop?category=${cat.slug}`}
                   onClick={() => setMenuOpen(false)}
-                  className="block py-[14px] text-[17px] font-bold text-gray-900 border-b border-gray-100 hover:text-brand-red transition-colors"
+                  className="block py-[14px] text-[17px] font-bold text-[var(--text-primary)] border-b border-[var(--border-color)] hover:text-brand-red transition-colors"
                 >
                   {cat.name}
                 </Link>
@@ -208,23 +211,23 @@ export function Header() {
                   key={href}
                   href={href}
                   onClick={() => setMenuOpen(false)}
-                  className="block py-[14px] text-[17px] font-bold text-gray-900 border-b border-gray-100 hover:text-brand-red transition-colors"
+                  className="block py-[14px] text-[17px] font-bold text-[var(--text-primary)] border-b border-[var(--border-color)] hover:text-brand-red transition-colors"
                 >
                   {label}
                 </Link>
               ))}
             </nav>
 
-            {/* Contact info — shrink-0 keeps it always visible at the bottom */}
+            {/* Contact info — always pinned at bottom, extra padding clears phone/browser UI */}
             <div
-              className="shrink-0 px-5 py-4"
+              className="shrink-0 px-5 pt-4"
               style={{
-                borderTop: '1px solid #f0f0f0',
-                paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+                borderTop: '1px solid var(--border-color)',
+                paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
               }}
             >
-              <p className="text-[13px] text-gray-500 leading-relaxed">
-                <span className="font-semibold text-gray-700">Address:</span> Store F11 Ikeja Town-Square Alausa
+              <p className="text-[13px] text-[var(--text-muted)] leading-relaxed">
+                <span className="font-semibold text-[var(--text-secondary)]">Address:</span> Store F11 Ikeja Town-Square Alausa
               </p>
               <p className="text-[13px] mt-2" style={{ color: '#c41e3a' }}>
                 <span className="font-semibold">Phone:</span>{' '}

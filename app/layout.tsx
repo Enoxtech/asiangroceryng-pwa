@@ -5,6 +5,7 @@ import { StorefrontShell } from '@/components/layout/StorefrontShell';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ToastContainer } from '@/components/ui/Toast';
 import { BackToTop } from '@/components/ui/BackToTop';
+import { SplashScreen } from '@/components/ui/SplashScreen';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CartDrawer />
         <ToastContainer />
         <BackToTop />
+        <SplashScreen />
       </body>
     </html>
   );
