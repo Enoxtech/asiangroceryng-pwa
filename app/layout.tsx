@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Anti-FOUC: set theme before first paint */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('agng-theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('agng-theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}try{var sa=window.matchMedia('(display-mode: standalone)').matches||(navigator.standalone===true);if(sa&&!sessionStorage.getItem('splash-v2')){sessionStorage.setItem('splash-v2','1');var bg=localStorage.getItem('agng-theme')==='dark'?'#16140F':'#E0DCD1';var d=document.createElement('div');d.id='__sp';d.style.cssText='position:fixed;inset:0;z-index:9998;background:'+bg;document.documentElement.appendChild(d);}}catch(e){}})();`,
           }}
         />
       </head>

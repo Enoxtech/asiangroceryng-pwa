@@ -63,15 +63,25 @@ export default function AboutPage() {
       <div className="text-center space-y-4 pt-4">
         <p className="text-xs font-label uppercase tracking-widest text-[var(--accent)]">Our Story</p>
         <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] leading-tight font-display">
-          Welcome to Asian Grocery NG
+          Welcome to the Asian Store Grocery!
         </h1>
         <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
-          Your one-stop destination for authentic Asian groceries right here in Nigeria. From the bustling markets of Tokyo
-          to the street food stalls of Seoul, Bangkok and Hanoi — we bring the true taste of Asia straight to your kitchen.
+          Here, we offer a wide range of products that cater to your Asian culinary needs. From traditional ingredients
+          like rice, noodles, and various spices, to snacks, beverages, and even cooking utensils, we have it all.
         </p>
         <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
-          Whether you&apos;re looking to recreate a favourite dish, discover new flavours, or simply stock your pantry with quality
-          Asian ingredients, our team is here to help you every step of the way.
+          Our store is designed to provide you with an authentic Asian shopping experience. Our shelves are stocked with
+          products from different parts of Asia, including Japan, Korea, China, Vietnam, and Thailand. We take pride in
+          offering you the best quality products at affordable prices.
+        </p>
+        <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
+          Whether you&apos;re a seasoned home cook or just starting to explore Asian cuisine, our friendly staff are always
+          ready to assist you in finding the right ingredients or products for your needs. We also offer cooking tips and
+          recipe suggestions to help you create delicious and authentic Asian dishes.
+        </p>
+        <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
+          Thank you for choosing Asian Store Grocery as your one-stop-shop for all your Asian grocery needs. We hope you
+          enjoy your shopping experience with us!
         </p>
       </div>
 

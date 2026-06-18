@@ -4,61 +4,64 @@ import { useState, useLayoutEffect } from 'react';
 import Image from 'next/image';
 
 export function SplashScreen() {
-  // 'loading'  — covers screen before first paint; never visible to user
-  // 'splash'   — show logo + animation
-  // 'done'     — unmount
-  const [phase, setPhase] = useState<'loading' | 'splash' | 'done'>('loading');
+  const [visible, setVisible] = useState(false);
+  const [fading, setFading] = useState(false);
 
   useLayoutEffect(() => {
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as { standalone?: boolean }).standalone === true;
+    // __sp is created by the inline <head> script only when:
+    //   1. Running as installed PWA (standalone)
+    //   2. First open of the session (sessionStorage key not yet set)
+    const cover = document.getElementById('__sp');
+    if (!cover) return;
 
-    if (!isStandalone) { setPhase('done'); return; }
+    // Show our animated splash on top of the pre-cover
+    setVisible(true);
 
-    const key = 'splash-shown-v1';
-    if (sessionStorage.getItem(key)) { setPhase('done'); return; }
+    // After 1700ms start fade-out
+    const t1 = setTimeout(() => setFading(true), 1700);
 
-    sessionStorage.setItem(key, '1');
-    setPhase('splash');
+    // After fade-out completes, remove cover and unmount
+    const t2 = setTimeout(() => {
+      cover.style.transition = 'opacity 350ms ease';
+      cover.style.opacity = '0';
+      setTimeout(() => cover.remove(), 360);
+      setVisible(false);
+      setFading(false);
+    }, 2050);
 
-    const t = setTimeout(() => setPhase('done'), 2400);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
-  if (phase === 'done') return null;
+  if (!visible) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center${phase === 'splash' ? ' animate-fade-out' : ''}`}
-      style={{ background: 'var(--bg)' }}
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+      style={{ background: 'var(--bg)', pointerEvents: 'none', opacity: fading ? 0 : 1, transition: 'opacity 350ms ease' }}
       aria-hidden="true"
     >
-      {phase === 'splash' && (
-        <>
-          <div className="animate-bounce-logo">
-            <div
-              className="relative h-28 w-28 rounded-[32px] overflow-hidden shadow-2xl"
-              style={{ background: '#c41e3a' }}
-            >
-              <Image
-                src="/logo.png"
-                alt="Asian Grocery NG"
-                fill
-                className="object-contain p-3"
-                style={{ filter: 'brightness(0) invert(1)' }}
-                priority
-              />
-            </div>
-          </div>
-          <p className="mt-5 text-base font-bold font-display tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Asian Grocery NG
-          </p>
-          <p className="text-xs font-label tracking-widest uppercase mt-1" style={{ color: 'var(--text-muted)' }}>
-            Exploring Asia Through Food
-          </p>
-        </>
-      )}
+      <div className="animate-bounce-logo">
+        <div
+          className="relative h-28 w-28 rounded-[32px] overflow-hidden shadow-2xl"
+          style={{ background: '#c41e3a' }}
+        >
+          <Image
+            src="/logo.png"
+            alt="Asian Grocery NG"
+            fill
+            className="object-contain p-3"
+            style={{ filter: 'brightness(0) invert(1)' }}
+            priority
+            unoptimized
+          />
+        </div>
+      </div>
+      <p className="mt-5 text-base font-bold font-display tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        Asian Grocery NG
+      </p>
+      <p className="text-xs font-label tracking-widest uppercase mt-1" style={{ color: 'var(--text-muted)' }}>
+        Exploring Asia Through Food
+      </p>
     </div>
   );
 }

@@ -173,6 +173,7 @@ export default function ProductDetailPage() {
               className="object-cover"
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"
+              unoptimized
             />
             {product.isOnSale && discount && (
               <div className="absolute top-3 left-3">
@@ -191,7 +192,7 @@ export default function ProductDetailPage() {
                     activeImage === i ? 'border-brand-red' : 'border-transparent'
                   )}
                 >
-                  <Image src={img} alt={`${product.name} view ${i + 1}`} fill className="object-cover" sizes="64px" />
+                  <Image src={img} alt={`${product.name} view ${i + 1}`} fill className="object-cover" sizes="64px" unoptimized />
                 </button>
               ))}
             </div>

@@ -69,7 +69,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 16vw"
           onError={() => setImgSrc(`https://placehold.co/600x600/f8ece8/c41e3a?text=${encodeURIComponent(product.name)}`)}
-          unoptimized={imgSrc.includes('placehold.co')}
+          unoptimized
         />
 
         {/* Badges */}
