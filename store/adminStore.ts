@@ -76,16 +76,34 @@ const mockOrders: AdminOrder[] = [
   { id: 'AGNG-001235', customer: 'Bayo Ogundimu', phone: '08099988877', total: 4500, status: 'cancelled', items: 2, area: 'Ibadan', date: '2024-07-12', payment: 'pay_on_delivery' },
 ];
 
+export interface BankDetails {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  bankBranch: string;
+  note: string;
+}
+
+const defaultBankDetails: BankDetails = {
+  bankName: '',
+  accountNumber: '',
+  accountName: '',
+  bankBranch: '',
+  note: 'Send proof of payment via WhatsApp after transfer.',
+};
+
 interface AdminStore {
   products: Product[];
   orders: AdminOrder[];
   banners: BannerSlide[];
   categories: Category[];
+  bankDetails: BankDetails;
 
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   addProduct: (product: Product) => void;
 
+  addOrder: (order: AdminOrder) => void;
   updateOrderStatus: (id: string, status: string) => void;
 
   updateBanner: (id: string, updates: Partial<BannerSlide>) => void;
@@ -94,6 +112,7 @@ interface AdminStore {
   moveBanner: (id: string, direction: 'up' | 'down') => void;
 
   updateCategory: (id: string, updates: Partial<Category>) => void;
+  updateBankDetails: (details: Partial<BankDetails>) => void;
 }
 
 export const useAdminStore = create<AdminStore>()(
@@ -103,6 +122,7 @@ export const useAdminStore = create<AdminStore>()(
       orders: mockOrders,
       banners: defaultBanners,
       categories: staticCategories,
+      bankDetails: defaultBankDetails,
 
       updateProduct: (id, updates) =>
         set({ products: get().products.map((p) => (p.id === id ? { ...p, ...updates } : p)) }),
@@ -111,6 +131,8 @@ export const useAdminStore = create<AdminStore>()(
       addProduct: (product) =>
         set({ products: [product, ...get().products] }),
 
+      addOrder: (order) =>
+        set({ orders: [order, ...get().orders] }),
       updateOrderStatus: (id, status) =>
         set({ orders: get().orders.map((o) => (o.id === id ? { ...o, status } : o)) }),
 
@@ -132,7 +154,9 @@ export const useAdminStore = create<AdminStore>()(
 
       updateCategory: (id, updates) =>
         set({ categories: get().categories.map((c) => (c.id === id ? { ...c, ...updates } : c)) }),
+      updateBankDetails: (details) =>
+        set({ bankDetails: { ...get().bankDetails, ...details } }),
     }),
-    { name: 'agng-admin', version: 1 }
+    { name: 'agng-admin', version: 2 }
   )
 );

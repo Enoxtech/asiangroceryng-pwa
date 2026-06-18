@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { buildCustomerConfirmation, openWhatsApp, ADMIN_WHATSAPP, buildAdminAlert } from '@/lib/whatsapp';
 import { useUserNotificationStore } from '@/store/userNotificationStore';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useAdminStore } from '@/store/adminStore';
 import type { OrderEmailPayload } from '@/app/api/notify-order/route';
 
 type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
@@ -33,6 +34,7 @@ export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCartStore();
   const { addNotification: addUserNotif } = useUserNotificationStore();
   const { addNotification: addAdminNotif } = useNotificationStore();
+  const { bankDetails, addOrder } = useAdminStore();
   const router = useRouter();
   const subtotal = totalPrice();
   const [step, setStep] = useState<'details' | 'payment'>('details');
@@ -114,6 +116,19 @@ export default function CheckoutPage() {
     await new Promise((r) => setTimeout(r, 1200));
 
     const orderDetails = buildOrderDetails(orderId);
+
+    // 0. Persist real order to admin orders panel
+    addOrder({
+      id: orderId,
+      customer: form.name || 'Customer',
+      phone: form.phone,
+      total,
+      status: 'pending',
+      items: items.length,
+      area: deliveryMethod === 'pickup' ? 'Store Pickup' : selectedArea.name,
+      date: new Date().toISOString().slice(0, 10),
+      payment: paymentMethod,
+    });
 
     // 1. Admin email (instant, fire-and-forget)
     sendAdminEmail({ ...orderDetails, orderId: orderDetails.id, source: 'checkout' });
@@ -384,8 +399,18 @@ export default function CheckoutPage() {
           {paymentMethod === 'bank_transfer' && (
             <div className="bg-blue-50 rounded-xl p-4 text-sm">
               <p className="font-bold text-blue-900 mb-2">Bank Transfer Details</p>
-              <p className="text-blue-700">Bank: GTBank (Guaranty Trust Bank)<br />Account Name: Asian Grocery NG<br />Account Number: 0000000000</p>
-              <p className="text-blue-500 text-xs mt-2">Send proof of payment via WhatsApp after transfer.</p>
+              {bankDetails.bankName ? (
+                <>
+                  <div className="space-y-1 text-blue-800">
+                    <p><span className="text-blue-500">Bank:</span> {bankDetails.bankName}{bankDetails.bankBranch ? ` (${bankDetails.bankBranch})` : ''}</p>
+                    <p><span className="text-blue-500">Account Name:</span> {bankDetails.accountName}</p>
+                    <p><span className="text-blue-500">Account Number:</span> <span className="font-bold tracking-wider">{bankDetails.accountNumber}</span></p>
+                  </div>
+                  {bankDetails.note && <p className="text-blue-500 text-xs mt-2">{bankDetails.note}</p>}
+                </>
+              ) : (
+                <p className="text-blue-700">Bank details not yet configured. Please contact us on WhatsApp to get our account details.</p>
+              )}
             </div>
           )}
 
