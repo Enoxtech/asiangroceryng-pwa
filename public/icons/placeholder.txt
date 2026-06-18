@@ -1,0 +1,7 @@
+Place icon-192.png and icon-512.png here.
+These are the PWA app icons.
+
+Quick way to generate:
+- Use https://favicon.io to create icons from text or emoji (use 🥡)
+- Or use a design tool (Figma, Canva) with brand colors (#c41e3a red on #faf7f2 beige)
+- Required sizes: 192×192 and 512×512 PNG
