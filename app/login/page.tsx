@@ -19,8 +19,8 @@ function LoginForm() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user) {
-      router.replace(user.role === 'admin' ? '/admin' : '/account');
+    if (user?.role === 'customer') {
+      router.replace('/account');
     }
   }, [user, router]);
 
@@ -33,14 +33,13 @@ function LoginForm() {
     if (!result.success) {
       setError(result.error || 'Login failed');
     } else {
-      const dest = from === 'admin' ? '/admin' : '/account';
-      router.push(dest);
+      router.push('/account');
     }
   }
 
-  function fillDemo(type: 'admin' | 'customer') {
-    if (type === 'admin') { setEmail('admin@asiangroceryng.com'); setPassword('Admin@2024'); }
-    else { setEmail('demo@customer.com'); setPassword('Demo@2024'); }
+  function fillDemo() {
+    setEmail('demo@customer.com');
+    setPassword('Demo@2024');
     setError('');
   }
 
@@ -123,26 +122,16 @@ function LoginForm() {
 
         {/* Demo credentials */}
         <div className="mt-5 p-4 rounded-[20px] border border-[var(--border-color)] bg-[var(--surface)]">
-          <p className="text-[11px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">Demo Credentials</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => fillDemo('admin')}
-              className="p-3 rounded-xl bg-[var(--bg)] border border-[var(--border-color)] text-left hover:border-brand-red transition-colors group"
-            >
-              <p className="text-[10px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Admin</p>
-              <p className="text-xs font-semibold text-[var(--text-primary)] font-display truncate group-hover:text-brand-red">admin@asiangroceryng.com</p>
-              <p className="text-[10px] text-[var(--text-muted)] font-label">Admin@2024</p>
-            </button>
-            <button
-              onClick={() => fillDemo('customer')}
-              className="p-3 rounded-xl bg-[var(--bg)] border border-[var(--border-color)] text-left hover:border-[var(--green)] transition-colors group"
-            >
-              <p className="text-[10px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Customer</p>
-              <p className="text-xs font-semibold text-[var(--text-primary)] font-display truncate group-hover:text-[var(--green)]">demo@customer.com</p>
-              <p className="text-[10px] text-[var(--text-muted)] font-label">Demo@2024</p>
-            </button>
-          </div>
-          <p className="text-[10px] text-[var(--text-muted)] text-center mt-2 font-display">Click a card above to auto-fill credentials</p>
+          <p className="text-[11px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">Demo Account</p>
+          <button
+            onClick={fillDemo}
+            className="w-full p-3 rounded-xl bg-[var(--bg)] border border-[var(--border-color)] text-left hover:border-[var(--green)] transition-colors group"
+          >
+            <p className="text-[10px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Customer</p>
+            <p className="text-xs font-semibold text-[var(--text-primary)] font-display group-hover:text-[var(--green)]">demo@customer.com</p>
+            <p className="text-[10px] text-[var(--text-muted)] font-label">Demo@2024</p>
+          </button>
+          <p className="text-[10px] text-[var(--text-muted)] text-center mt-2 font-display">Click above to auto-fill credentials</p>
         </div>
 
         <p className="text-center mt-4 text-sm text-[var(--text-muted)] font-display">

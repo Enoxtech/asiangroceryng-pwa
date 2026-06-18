@@ -31,15 +31,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setMounted(true);
   }, []);
 
+  const isLoginPage = pathname === '/admin/login';
+
   useEffect(() => {
-    if (mounted && user?.role !== 'admin') {
-      router.replace('/login?from=admin');
+    if (mounted && !isLoginPage && user?.role !== 'admin') {
+      router.replace('/admin/login');
     }
-  }, [mounted, user, router]);
+  }, [mounted, user, router, isLoginPage]);
+
+  // Admin login page — render without sidebar/header
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (!mounted || user?.role !== 'admin') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f0e0b' }}>
         <div className="h-8 w-8 rounded-full border-2 border-brand-red border-t-transparent animate-spin" />
       </div>
     );
