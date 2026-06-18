@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { buildCustomerConfirmation, openWhatsApp, ADMIN_WHATSAPP, buildAdminAlert } from '@/lib/whatsapp';
 import { useUserNotificationStore } from '@/store/userNotificationStore';
 import { useNotificationStore } from '@/store/notificationStore';
+import type { OrderEmailPayload } from '@/app/api/notify-order/route';
 
 type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
 type DeliveryMethod = 'ship' | 'pickup';
@@ -97,16 +98,27 @@ export default function CheckoutPage() {
     };
   }
 
+  function sendAdminEmail(payload: OrderEmailPayload) {
+    // Fire-and-forget — never block the order flow
+    fetch('/api/notify-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => { /* silent — email is non-critical */ });
+  }
+
   async function handlePlaceOrder(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
-    // TODO: Submit order to Supabase
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
 
     const orderDetails = buildOrderDetails(orderId);
 
-    // In-app user notification
+    // 1. Admin email (instant, fire-and-forget)
+    sendAdminEmail({ ...orderDetails, orderId: orderDetails.id, source: 'checkout' });
+
+    // 2. In-app user notification
     addUserNotif({
       type: 'order',
       title: `Order ${orderId} Confirmed!`,
@@ -114,7 +126,7 @@ export default function CheckoutPage() {
       link: '/orders',
     });
 
-    // In-app admin notification
+    // 3. In-app admin notification
     addAdminNotif({
       type: 'order',
       title: 'New Order Received',
@@ -122,13 +134,13 @@ export default function CheckoutPage() {
       actionUrl: '/admin/orders',
     });
 
-    // WhatsApp customer confirmation
+    // 4. WhatsApp customer confirmation
     if (form.phone) {
       const customerMsg = buildCustomerConfirmation(orderDetails);
       openWhatsApp(form.phone, customerMsg);
     }
 
-    // WhatsApp admin alert
+    // 5. WhatsApp admin alert
     const adminMsg = buildAdminAlert(orderDetails);
     openWhatsApp(ADMIN_WHATSAPP, adminMsg);
 
@@ -141,14 +153,17 @@ export default function CheckoutPage() {
     const orderDetails = buildOrderDetails(orderId);
     const message = buildCustomerConfirmation(orderDetails);
 
-    // Admin alert
+    // 1. Admin email (fire-and-forget)
+    sendAdminEmail({ ...orderDetails, orderId: orderDetails.id, source: 'whatsapp' });
+
+    // 2. Admin WhatsApp alert
     const adminMsg = buildAdminAlert(orderDetails);
     openWhatsApp(ADMIN_WHATSAPP, adminMsg);
 
-    // Customer confirmation
+    // 3. Customer WhatsApp confirmation
     window.open(`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent(message)}`, '_blank');
 
-    // In-app notifications
+    // 4. In-app notifications
     addUserNotif({
       type: 'order',
       title: `Order ${orderId} via WhatsApp`,
