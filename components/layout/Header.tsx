@@ -43,7 +43,7 @@ export function Header() {
           </div>
           <div className="hidden sm:block leading-tight">
             <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight font-display">Asian Grocery</p>
-            <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest leading-none font-label">Nigeria</p>
+            <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest leading-none font-label">Exploring Asia Through Food</p>
           </div>
         </Link>
 

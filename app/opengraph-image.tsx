@@ -50,7 +50,7 @@ export default function OgImage() {
           color: 'rgba(255,255,255,0.82)', fontSize: 26,
           margin: '0 0 36px', textAlign: 'center', maxWidth: 700,
         }}>
-          Authentic Korean, Japanese, Chinese & Thai groceries — delivered across Nigeria
+          Exploring Asia Through Food — Korean, Japanese, Chinese & Thai groceries delivered across Nigeria
         </p>
 
         {/* CTA pill */}
