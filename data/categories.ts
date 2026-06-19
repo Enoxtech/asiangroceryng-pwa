@@ -109,6 +109,15 @@ export const categories: Category[] = [
     productCount: 40,
     emoji: '🍡',
   },
+  {
+    id: 'cat-13',
+    name: 'Wholesale',
+    slug: 'wholesale',
+    image: 'https://placehold.co/300x300/e8e0f4/3a1a6a?text=Wholesale',
+    description: 'Bulk packs and cartons for restaurants, retailers, and large households.',
+    productCount: 10,
+    emoji: '📦',
+  },
 ];
 
 export function getCategoryBySlug(slug: string): Category | undefined {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Download, Wifi, Zap, Smartphone } from 'lucide-react';
+import { X, Download, Wifi, Zap, Smartphone, Share, SquarePlus } from 'lucide-react';
 import Image from 'next/image';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -9,13 +9,40 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+function isIosDevice() {
+  if (typeof navigator === 'undefined') return false;
+  // iPadOS 13+ reports as "MacIntel" with touch support — catch that too
+  const ua = navigator.userAgent;
+  const isAppleMobile = /iPad|iPhone|iPod/.test(ua);
+  const isIpadOsDesktopUa = ua.includes('Macintosh') && navigator.maxTouchPoints > 1;
+  return isAppleMobile || isIpadOsDesktopUa;
+}
+
+function isStandaloneDisplay() {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isIos, setIsIos] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem('pwa-install-dismissed')) { setDismissed(true); return; }
+    if (isStandaloneDisplay()) return; // already installed — nothing to prompt
+
+    // Safari on iOS/iPadOS never fires beforeinstallprompt — show manual instructions instead
+    if (isIosDevice()) {
+      setIsIos(true);
+      const t = setTimeout(() => setVisible(true), 3500);
+      return () => clearTimeout(t);
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -39,7 +66,7 @@ export function InstallPrompt() {
     localStorage.setItem('pwa-install-dismissed', '1');
   }
 
-  if (!deferredPrompt || dismissed || !visible) return null;
+  if ((!deferredPrompt && !isIos) || dismissed || !visible) return null;
 
   return (
     <>
@@ -113,20 +140,42 @@ export function InstallPrompt() {
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            <button
-              onClick={handleInstall}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[14px] font-bold text-sm text-white transition-all hover:opacity-90 active:scale-95 cursor-pointer"
-              style={{ background: '#c41e3a' }}
-            >
-              <Download className="h-4 w-4" />
-              Add to Home Screen
-            </button>
+            {isIos ? (
+              <div
+                className="w-full rounded-[14px] py-3.5 px-4 text-left flex flex-col gap-2.5"
+                style={{ background: 'var(--surface)' }}
+              >
+                <p className="flex items-center gap-2.5 text-sm font-display" style={{ color: 'var(--text-primary)' }}>
+                  <span
+                    className="shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                    style={{ background: '#c41e3a', color: 'white' }}
+                  >1</span>
+                  Tap <Share className="h-4 w-4 inline shrink-0" style={{ color: 'var(--accent)' }} /> Share in Safari&apos;s toolbar
+                </p>
+                <p className="flex items-center gap-2.5 text-sm font-display" style={{ color: 'var(--text-primary)' }}>
+                  <span
+                    className="shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                    style={{ background: '#c41e3a', color: 'white' }}
+                  >2</span>
+                  Scroll down and tap <SquarePlus className="h-4 w-4 inline shrink-0" style={{ color: 'var(--accent)' }} /> &quot;Add to Home Screen&quot;
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={handleInstall}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[14px] font-bold text-sm text-white transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+                style={{ background: '#c41e3a' }}
+              >
+                <Download className="h-4 w-4" />
+                Add to Home Screen
+              </button>
+            )}
             <button
               onClick={handleDismiss}
               className="w-full py-3 rounded-[14px] text-sm font-display transition-colors cursor-pointer"
               style={{ color: 'var(--text-muted)' }}
             >
-              Maybe Later
+              {isIos ? 'Got It' : 'Maybe Later'}
             </button>
           </div>
         </div>

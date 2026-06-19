@@ -19,11 +19,12 @@ const categoryIcons: Record<string, React.ElementType> = {
   'pantry-staples': ShoppingBasket,
   'sauces-condiments': FlaskConical,
   snacks: Cookie,
+  wholesale: Box,
 };
 
 export function CategoryChips() {
   const featured = categories.filter((c) =>
-    ['boba', 'noodles-ramen', 'drinks', 'pantry-staples', 'sauces-condiments', 'frozen-products', 'cookwares', 'grains', 'snacks'].includes(c.slug)
+    ['boba', 'noodles-ramen', 'drinks', 'pantry-staples', 'sauces-condiments', 'frozen-products', 'cookwares', 'grains', 'snacks', 'wholesale'].includes(c.slug)
   );
 
   return (

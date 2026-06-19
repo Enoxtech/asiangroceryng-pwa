@@ -53,6 +53,7 @@ const countries = [
   { flag: '🇨🇳', name: 'China', desc: 'Soy sauces, sesame oil, dumplings, dim sum & noodles' },
   { flag: '🇻🇳', name: 'Vietnam', desc: 'Pho noodles, fish sauce, rice paper & lemongrass pastes' },
   { flag: '🇹🇭', name: 'Thailand', desc: 'Curry pastes, coconut milk, pad thai kits & jasmine rice' },
+  { flag: '🇮🇩', name: 'Indonesia', desc: 'Sambal, kecap manis, tempeh & Indonesian spice pastes' },
 ];
 
 export default function AboutPage() {
@@ -71,7 +72,7 @@ export default function AboutPage() {
         </p>
         <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
           Our store is designed to provide you with an authentic Asian shopping experience. Our shelves are stocked with
-          products from different parts of Asia, including Japan, Korea, China, Vietnam, and Thailand. We take pride in
+          products from different parts of Asia, including Japan, Korea, China, Vietnam, Thailand, and Indonesia. We take pride in
           offering you the best quality products at affordable prices.
         </p>
         <p className="text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed font-body">
@@ -88,7 +89,7 @@ export default function AboutPage() {
       {/* Countries we source from */}
       <div>
         <p className="text-xs font-label uppercase tracking-widest text-center text-[var(--accent)] mb-6">Products Sourced From</p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {countries.map((c) => (
             <div key={c.name} className="p-4 rounded-[20px] glass border border-[var(--border-color)] text-center group hover:border-[var(--accent)] transition-colors">
               <span className="text-3xl block mb-2">{c.flag}</span>

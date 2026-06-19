@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const messages = [
+  { text: 'Use the Promo Code (SHOPASIA) during your checkout to get 10% off!', link: '/checkout', cta: 'Use Code' },
   { text: 'Weekly grocery deals are live — Discover new savings today.', link: '/deals', cta: 'Shop Now' },
   { text: 'Free delivery on all orders above ₦15,000 in Lagos!', link: '/shop', cta: 'Order Now' },
   { text: 'New Korean BBQ collection just arrived — limited stock!', link: '/shop?tag=korean', cta: 'View Now' },

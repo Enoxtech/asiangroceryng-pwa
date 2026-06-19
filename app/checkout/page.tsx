@@ -24,6 +24,7 @@ const PICKUP_STORE = {
 };
 
 const PROMO_CODES: Record<string, { type: 'percent' | 'fixed' | 'shipping'; value: number; label: string; minOrder?: number }> = {
+  SHOPASIA:     { type: 'percent', value: 10, label: '10% off' },
   ASIAN10:      { type: 'percent', value: 10, label: '10% off',      minOrder: 5000 },
   NEWCUSTOMER:  { type: 'percent', value: 15, label: '15% off',      minOrder: 3000 },
   WELCOME20:    { type: 'percent', value: 20, label: '20% off',      minOrder: 10000 },
