@@ -7,12 +7,16 @@ import { InstallPrompt } from '@/components/home/InstallPrompt';
 import { PromoBanner } from '@/components/home/PromoBanner';
 import { TestimonialSlider } from '@/components/home/TestimonialSlider';
 import { RecentlyViewed } from '@/components/home/RecentlyViewed';
-import { getFeaturedProducts, getNewProducts, getSaleProducts } from '@/data/products';
+import { getFeaturedProducts, getNewProducts, getSaleProducts } from '@/lib/queries';
 
-export default function HomePage() {
-  const featured = getFeaturedProducts();
-  const newArrivals = getNewProducts();
-  const deals = getSaleProducts();
+export const revalidate = 60;
+
+export default async function HomePage() {
+  const [featured, newArrivals, deals] = await Promise.all([
+    getFeaturedProducts(),
+    getNewProducts(),
+    getSaleProducts(),
+  ]);
 
   return (
     <div className="pb-10">

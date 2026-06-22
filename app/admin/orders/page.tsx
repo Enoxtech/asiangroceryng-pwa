@@ -74,7 +74,7 @@ export default function AdminOrdersPage() {
                 <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-mono font-bold text-gray-200 text-xs">{order.id}</p>
-                    <p className="text-[10px] text-gray-500 font-label mt-0.5">{order.items} {order.items === 1 ? 'item' : 'items'} · {order.payment.replace('_', ' ')}</p>
+                    <p className="text-[10px] text-gray-500 font-label mt-0.5">{order.items.length} {order.items.length === 1 ? 'item' : 'items'} · {order.payment.replace('_', ' ')}</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <p className="font-medium text-gray-200 text-xs font-display">{order.customer}</p>

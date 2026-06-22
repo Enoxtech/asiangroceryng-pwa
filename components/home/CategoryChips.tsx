@@ -4,7 +4,7 @@ import {
   Wheat, Box, UtensilsCrossed, ShoppingBasket, FlaskConical,
   Cookie, ShoppingBag,
 } from 'lucide-react';
-import { categories } from '@/data/categories';
+import { getAllCategories } from '@/lib/queries';
 
 const categoryIcons: Record<string, React.ElementType> = {
   boba: Coffee,
@@ -22,7 +22,8 @@ const categoryIcons: Record<string, React.ElementType> = {
   wholesale: Box,
 };
 
-export function CategoryChips() {
+export async function CategoryChips() {
+  const categories = await getAllCategories();
   const featured = categories.filter((c) =>
     ['boba', 'noodles-ramen', 'drinks', 'pantry-staples', 'sauces-condiments', 'frozen-products', 'cookwares', 'grains', 'snacks', 'wholesale'].includes(c.slug)
   );

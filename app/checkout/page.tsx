@@ -119,17 +119,26 @@ export default function CheckoutPage() {
     const orderDetails = buildOrderDetails(orderId);
 
     // 0. Persist real order to admin orders panel
-    addOrder({
-      id: orderId,
-      customer: form.name || 'Customer',
-      phone: form.phone,
-      total,
-      status: 'pending',
-      items: items.length,
-      area: deliveryMethod === 'pickup' ? 'Store Pickup' : selectedArea.name,
-      date: new Date().toISOString().slice(0, 10),
-      payment: paymentMethod,
-    });
+    try {
+      await addOrder({
+        id: orderId,
+        customer: form.name || 'Customer',
+        phone: form.phone,
+        email: form.email || undefined,
+        subtotal: orderDetails.subtotal,
+        deliveryFee: orderDetails.deliveryFee,
+        discount: orderDetails.discount,
+        total,
+        status: 'pending',
+        items: orderDetails.items,
+        area: orderDetails.area,
+        address: orderDetails.address,
+        date: new Date().toISOString().slice(0, 10),
+        payment: paymentMethod,
+      });
+    } catch (err) {
+      console.error('[checkout] failed to save order to admin panel', err);
+    }
 
     // 1. Admin email (instant, fire-and-forget)
     sendAdminEmail({ ...orderDetails, orderId: orderDetails.id, source: 'checkout' });

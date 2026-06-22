@@ -1,9 +1,11 @@
 import { Tag } from 'lucide-react';
-import { getSaleProducts } from '@/data/products';
+import { getSaleProducts } from '@/lib/queries';
 import { ProductGrid } from '@/components/product/ProductGrid';
 
-export default function DealsPage() {
-  const deals = getSaleProducts();
+export const revalidate = 60;
+
+export default async function DealsPage() {
+  const deals = await getSaleProducts();
 
   return (
     <div className="px-4 py-6">

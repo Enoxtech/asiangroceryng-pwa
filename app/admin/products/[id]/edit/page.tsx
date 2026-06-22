@@ -5,13 +5,12 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Check } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
-import { categories } from '@/data/categories';
 import { Product } from '@/types';
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { products, updateProduct } = useAdminStore();
+  const { products, categories, updateProduct } = useAdminStore();
   const product = products.find((p) => p.id === id);
 
   const [form, setForm] = useState<Partial<Product>>({});

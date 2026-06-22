@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Heart, ShoppingCart, Zap, MessageCircle, HelpCircle, ChevronDown, ChevronUp, Star, Truck, RotateCcw, Thermometer } from 'lucide-react';
-import { getProductBySlug, getRelatedProducts } from '@/data/products';
+import { useAdminStore } from '@/store/adminStore';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useRecentlyViewedStore } from '@/store/recentlyViewedStore';
@@ -47,22 +47,9 @@ const spiceLabels = {
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const found = getProductBySlug(slug);
-  const product = found!;
+  const { products, hydrated } = useAdminStore();
+  const product = products.find((p) => p.slug === slug);
 
-  if (!found) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
-        <div className="text-6xl">🍜</div>
-        <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
-        <Link href="/shop" className="px-6 py-3 bg-brand-red text-white font-bold rounded-xl hover:bg-red-700 transition-colors">
-          Back to Shop
-        </Link>
-      </div>
-    );
-  }
-
-  const related = getRelatedProducts(product);
   const { addItem, openCart } = useCartStore();
   const { toggleItem, isInWishlist } = useWishlistStore();
   const { addItem: addRecentlyViewed } = useRecentlyViewedStore();
@@ -75,13 +62,14 @@ export default function ProductDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
+    if (!product) return;
     const stored = localStorage.getItem(`agng-reviews-${product.id}`);
     setReviews(stored ? JSON.parse(stored) : (SEED_REVIEWS[product.id] ?? SEED_REVIEWS.default));
-  }, [product.id]);
+  }, [product?.id]);
 
   const submitReview = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewForm.name.trim() || !reviewForm.comment.trim()) return;
+    if (!product || !reviewForm.name.trim() || !reviewForm.comment.trim()) return;
     setSubmittingReview(true);
     const newReview: Review = {
       id: Date.now().toString(),
@@ -96,14 +84,33 @@ export default function ProductDetailPage() {
     setReviewForm({ name: '', rating: 5, comment: '' });
     setSubmittingReview(false);
     showToast('Review submitted! Thank you 🙏', 'success');
-  }, [reviewForm, reviews, product.id, showToast]);
+  }, [reviewForm, reviews, product, showToast]);
 
   useEffect(() => {
+    if (!product) return;
     addRecentlyViewed(product);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id]);
+  }, [product?.id]);
   const [activeImage, setActiveImage] = useState(0);
   const [expandedSection, setExpandedSection] = useState<string | null>('details');
+
+  if (!hydrated) {
+    return <div className="min-h-[60vh]" />;
+  }
+
+  if (!product) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
+        <div className="text-6xl">🍜</div>
+        <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
+        <Link href="/shop" className="px-6 py-3 bg-brand-red text-white font-bold rounded-xl hover:bg-red-700 transition-colors">
+          Back to Shop
+        </Link>
+      </div>
+    );
+  }
+
+  const related = products.filter((p) => p.categorySlug === product.categorySlug && p.id !== product.id).slice(0, 4);
   const wishlisted = isInWishlist(product.id);
 
   const storage = storageLabels[product.storageType];
@@ -113,8 +120,8 @@ export default function ProductDetailPage() {
     : product.discount;
 
   function handleAddToCart() {
-    addItem(product, qty);
-    showToast(`${qty > 1 ? `${qty}×` : ''} ${product.name} added to cart`, 'cart', '🛒');
+    addItem(product!, qty);
+    showToast(`${qty > 1 ? `${qty}×` : ''} ${product!.name} added to cart`, 'cart', '🛒');
     openCart();
   }
 

@@ -3,8 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
-import { products } from '@/data/products';
-import { categories } from '@/data/categories';
+import { useAdminStore } from '@/store/adminStore';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { cn } from '@/lib/utils';
 import { Suspense } from 'react';
@@ -33,6 +32,7 @@ function ProductGridSkeleton() {
 type SortOption = 'latest' | 'price-asc' | 'price-desc' | 'popular';
 
 function ShopContent() {
+  const { products, categories } = useAdminStore();
   const searchParams = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('latest');
@@ -70,7 +70,7 @@ function ShopContent() {
     }
 
     return result;
-  }, [searchQuery, selectedCategory, selectedTag, inStockOnly, onSaleOnly, maxPrice, sortBy]);
+  }, [products, searchQuery, selectedCategory, selectedTag, inStockOnly, onSaleOnly, maxPrice, sortBy]);
 
   function clearFilters() {
     setSelectedCategory('');

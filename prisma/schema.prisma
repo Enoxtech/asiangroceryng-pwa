@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id               String   @id
+  name             String
+  slug             String   @unique
+  description      String
+  shortDescription String
+  price            Float
+  comparePrice     Float?
+  images           String[]
+  category         String
+  categorySlug     String
+  brand            String
+  countryOfOrigin  String
+  countryFlag      String
+  weight           String
+  ingredients      String?
+  allergens        String?
+  expiryInfo       String?
+  storageType      String
+  spiceLevel       String?
+  inStock          Boolean  @default(true)
+  stockCount       Int      @default(0)
+  isFeatured       Boolean  @default(false)
+  isNew            Boolean  @default(false)
+  isOnSale         Boolean  @default(false)
+  discount         Int?
+  tags             String[]
+  rating           Float    @default(0)
+  reviewCount      Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Category {
+  id           String @id
+  name         String
+  slug         String @unique
+  image        String
+  description  String
+  productCount Int    @default(0)
+  emoji        String
+}
+
+model Order {
+  id            String      @id
+  customer      String
+  phone         String
+  email         String?
+  subtotal      Float
+  deliveryFee   Float
+  discount      Float       @default(0)
+  total         Float
+  status        String      @default("pending")
+  area          String
+  address       String?
+  payment       String
+  notes         String?
+  source        String      @default("checkout")
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  name     String
+  quantity Int
+  price    Float
+}
+
+model Banner {
+  id         String  @id
+  image      String
+  headline   String
+  subtitle   String
+  ctaLabel   String
+  ctaHref    String
+  transition String
+  align      String
+  enabled    Boolean @default(true)
+  position   Int     @default(0)
+}
+
+model BankDetails {
+  id            String @id @default("singleton")
+  bankName      String @default("")
+  accountNumber String @default("")
+  accountName   String @default("")
+  bankBranch    String @default("")
+  note          String @default("")
+}

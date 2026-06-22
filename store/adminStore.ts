@@ -1,17 +1,25 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { Product, Category } from '@/types';
-import { products as staticProducts } from '@/data/products';
-import { categories as staticCategories } from '@/data/categories';
+
+export interface OrderLineItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
 
 export interface AdminOrder {
   id: string;
   customer: string;
   phone: string;
+  email?: string;
+  subtotal: number;
+  deliveryFee: number;
+  discount?: number;
   total: number;
   status: string;
-  items: number;
+  items: OrderLineItem[];
   area: string;
+  address?: string;
   date: string;
   payment: string;
 }
@@ -31,51 +39,6 @@ export interface BannerSlide {
   enabled: boolean;
 }
 
-const defaultBanners: BannerSlide[] = [
-  {
-    id: 'banner-1',
-    image: '/banners/hero.png',
-    headline: 'Asia In Every Aisle',
-    subtitle: 'Korean · Japanese · Thai · Chinese',
-    ctaLabel: 'Shop Now',
-    ctaHref: '/shop',
-    transition: 'fade',
-    align: 'left',
-    enabled: true,
-  },
-  {
-    id: 'banner-2',
-    image: '/banners/walkin.png',
-    headline: 'Visit Our Store',
-    subtitle: 'Fresh arrivals every week',
-    ctaLabel: 'Find Us',
-    ctaHref: '/contact',
-    transition: 'slide',
-    align: 'center',
-    enabled: true,
-  },
-  {
-    id: 'banner-3',
-    image: '/banners/chalkboard.png',
-    headline: 'Fresh Deals Daily',
-    subtitle: 'Save big on Asian favourites',
-    ctaLabel: 'See Deals',
-    ctaHref: '/deals',
-    transition: 'zoom',
-    align: 'right',
-    enabled: true,
-  },
-];
-
-const mockOrders: AdminOrder[] = [
-  { id: 'AGNG-001240', customer: 'Amara Okafor', phone: '08012345678', total: 8400, status: 'pending', items: 3, area: 'Lagos Island', date: '2024-07-15', payment: 'pay_on_delivery' },
-  { id: 'AGNG-001239', customer: 'Femi Adeleke', phone: '08087654321', total: 5500, status: 'processing', items: 2, area: 'Abuja', date: '2024-07-15', payment: 'bank_transfer' },
-  { id: 'AGNG-001238', customer: 'Chioma Eze', phone: '08055544433', total: 12300, status: 'shipped', items: 5, area: 'Lagos Mainland', date: '2024-07-14', payment: 'bank_transfer' },
-  { id: 'AGNG-001237', customer: 'Kola Abiodun', phone: '09011122233', total: 3200, status: 'delivered', items: 1, area: 'Port Harcourt', date: '2024-07-14', payment: 'pay_on_delivery' },
-  { id: 'AGNG-001236', customer: 'Ngozi Nwosu', phone: '07033344455', total: 7800, status: 'delivered', items: 4, area: 'Lagos Island', date: '2024-07-13', payment: 'bank_transfer' },
-  { id: 'AGNG-001235', customer: 'Bayo Ogundimu', phone: '08099988877', total: 4500, status: 'cancelled', items: 2, area: 'Ibadan', date: '2024-07-12', payment: 'pay_on_delivery' },
-];
-
 export interface BankDetails {
   bankName: string;
   accountNumber: string;
@@ -89,8 +52,17 @@ const defaultBankDetails: BankDetails = {
   accountNumber: '',
   accountName: '',
   bankBranch: '',
-  note: 'Send proof of payment via WhatsApp after transfer.',
+  note: '',
 };
+
+async function api<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}: ${url}`);
+  return res.json();
+}
 
 interface AdminStore {
   products: Product[];
@@ -98,65 +70,106 @@ interface AdminStore {
   banners: BannerSlide[];
   categories: Category[];
   bankDetails: BankDetails;
+  hydrated: boolean;
 
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  addProduct: (product: Product) => void;
+  hydrate: () => Promise<void>;
 
-  addOrder: (order: AdminOrder) => void;
-  updateOrderStatus: (id: string, status: string) => void;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addProduct: (product: Product) => Promise<void>;
 
-  updateBanner: (id: string, updates: Partial<BannerSlide>) => void;
-  addBanner: (banner: BannerSlide) => void;
-  deleteBanner: (id: string) => void;
-  moveBanner: (id: string, direction: 'up' | 'down') => void;
+  addOrder: (order: AdminOrder) => Promise<void>;
+  updateOrderStatus: (id: string, status: string) => Promise<void>;
 
-  updateCategory: (id: string, updates: Partial<Category>) => void;
-  updateBankDetails: (details: Partial<BankDetails>) => void;
+  updateBanner: (id: string, updates: Partial<BannerSlide>) => Promise<void>;
+  addBanner: (banner: BannerSlide) => Promise<void>;
+  deleteBanner: (id: string) => Promise<void>;
+  moveBanner: (id: string, direction: 'up' | 'down') => Promise<void>;
+
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  updateBankDetails: (details: Partial<BankDetails>) => Promise<void>;
 }
 
-export const useAdminStore = create<AdminStore>()(
-  persist(
-    (set, get) => ({
-      products: staticProducts,
-      orders: mockOrders,
-      banners: defaultBanners,
-      categories: staticCategories,
-      bankDetails: defaultBankDetails,
+export const useAdminStore = create<AdminStore>()((set, get) => ({
+  products: [],
+  orders: [],
+  banners: [],
+  categories: [],
+  bankDetails: defaultBankDetails,
+  hydrated: false,
 
-      updateProduct: (id, updates) =>
-        set({ products: get().products.map((p) => (p.id === id ? { ...p, ...updates } : p)) }),
-      deleteProduct: (id) =>
-        set({ products: get().products.filter((p) => p.id !== id) }),
-      addProduct: (product) =>
-        set({ products: [product, ...get().products] }),
+  hydrate: async () => {
+    if (get().hydrated) return;
+    const [products, categories, orders, banners, bankDetails] = await Promise.all([
+      api<Product[]>('/api/products'),
+      api<Category[]>('/api/categories'),
+      api<(AdminOrder & { createdAt: string })[]>('/api/orders'),
+      api<BannerSlide[]>('/api/banners'),
+      api<BankDetails>('/api/bank-details'),
+    ]);
+    set({
+      products,
+      categories,
+      orders: orders.map((o) => ({ ...o, date: o.createdAt.slice(0, 10) })),
+      banners,
+      bankDetails,
+      hydrated: true,
+    });
+  },
 
-      addOrder: (order) =>
-        set({ orders: [order, ...get().orders] }),
-      updateOrderStatus: (id, status) =>
-        set({ orders: get().orders.map((o) => (o.id === id ? { ...o, status } : o)) }),
+  updateProduct: async (id, updates) => {
+    const product = await api<Product>(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(updates) });
+    set({ products: get().products.map((p) => (p.id === id ? product : p)) });
+  },
+  deleteProduct: async (id) => {
+    await api(`/api/products/${id}`, { method: 'DELETE' });
+    set({ products: get().products.filter((p) => p.id !== id) });
+  },
+  addProduct: async (product) => {
+    const created = await api<Product>('/api/products', { method: 'POST', body: JSON.stringify(product) });
+    set({ products: [created, ...get().products] });
+  },
 
-      updateBanner: (id, updates) =>
-        set({ banners: get().banners.map((b) => (b.id === id ? { ...b, ...updates } : b)) }),
-      addBanner: (banner) =>
-        set({ banners: [...get().banners, banner] }),
-      deleteBanner: (id) =>
-        set({ banners: get().banners.filter((b) => b.id !== id) }),
-      moveBanner: (id, direction) => {
-        const banners = [...get().banners];
-        const idx = banners.findIndex((b) => b.id === id);
-        if (idx === -1) return;
-        const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-        if (newIdx < 0 || newIdx >= banners.length) return;
-        [banners[idx], banners[newIdx]] = [banners[newIdx], banners[idx]];
-        set({ banners });
-      },
+  addOrder: async (order) => {
+    const created = await api<AdminOrder>('/api/orders', { method: 'POST', body: JSON.stringify(order) });
+    set({ orders: [{ ...created, date: order.date }, ...get().orders] });
+  },
+  updateOrderStatus: async (id, status) => {
+    const updated = await api<AdminOrder>(`/api/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    set({ orders: get().orders.map((o) => (o.id === id ? { ...o, status: updated.status } : o)) });
+  },
 
-      updateCategory: (id, updates) =>
-        set({ categories: get().categories.map((c) => (c.id === id ? { ...c, ...updates } : c)) }),
-      updateBankDetails: (details) =>
-        set({ bankDetails: { ...get().bankDetails, ...details } }),
-    }),
-    { name: 'agng-admin', version: 2 }
-  )
-);
+  updateBanner: async (id, updates) => {
+    const banner = await api<BannerSlide>(`/api/banners/${id}`, { method: 'PATCH', body: JSON.stringify(updates) });
+    set({ banners: get().banners.map((b) => (b.id === id ? banner : b)) });
+  },
+  addBanner: async (banner) => {
+    const created = await api<BannerSlide>('/api/banners', { method: 'POST', body: JSON.stringify(banner) });
+    set({ banners: [...get().banners, created] });
+  },
+  deleteBanner: async (id) => {
+    await api(`/api/banners/${id}`, { method: 'DELETE' });
+    set({ banners: get().banners.filter((b) => b.id !== id) });
+  },
+  moveBanner: async (id, direction) => {
+    const banners = [...get().banners];
+    const idx = banners.findIndex((b) => b.id === id);
+    if (idx === -1) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= banners.length) return;
+    [banners[idx], banners[newIdx]] = [banners[newIdx], banners[idx]];
+    set({ banners });
+    await Promise.all(
+      banners.map((b, i) => api(`/api/banners/${b.id}`, { method: 'PATCH', body: JSON.stringify({ position: i }) }))
+    );
+  },
+
+  updateCategory: async (id, updates) => {
+    const category = await api<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify(updates) });
+    set({ categories: get().categories.map((c) => (c.id === id ? category : c)) });
+  },
+  updateBankDetails: async (details) => {
+    const bankDetails = await api<BankDetails>('/api/bank-details', { method: 'PATCH', body: JSON.stringify(details) });
+    set({ bankDetails });
+  },
+}));
