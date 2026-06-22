@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 // Intentionally public — checkout shows these details to customers paying by bank transfer.
 export async function GET() {
@@ -13,7 +14,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { response } = await requireRole(req, ['super_admin']);
+  const { session, response } = await requireRole(req, ['super_admin']);
   if (response) return response;
 
   const body = await req.json();
@@ -22,5 +23,8 @@ export async function PATCH(req: NextRequest) {
     update: body,
     create: { id: 'singleton', ...body },
   });
+
+  await logAudit(req, session, 'update', 'BankDetails', 'singleton', { fields: Object.keys(body) });
+
   return NextResponse.json(bankDetails);
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   const { response } = await requireRole(req, ['super_admin', 'support', 'product_manager']);
@@ -15,6 +17,12 @@ export async function GET(req: NextRequest) {
 
 // Intentionally public — this is how customers place real orders at checkout.
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const ok = await checkRateLimit(`order:${ip}`, 8, 10 * 60 * 1000);
+  if (!ok) {
+    return NextResponse.json({ error: 'Too many orders submitted. Please try again later.' }, { status: 429 });
+  }
+
   const body = await req.json();
   const order = await prisma.order.create({
     data: {

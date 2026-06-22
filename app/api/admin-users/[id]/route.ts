@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireRole, hashPassword } from '@/lib/auth';
+import { requireRole, hashPassword, validatePasswordStrength } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 const SAFE_SELECT = { id: true, name: true, email: true, role: true, active: true, createdAt: true, lastLoginAt: true };
 
@@ -22,14 +23,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof body.name === 'string') data.name = body.name;
   if (typeof body.role === 'string') data.role = body.role;
   if (typeof body.active === 'boolean') data.active = body.active;
+  let passwordReset = false;
   if (typeof body.password === 'string' && body.password.length > 0) {
-    if (body.password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+    const passwordError = validatePasswordStrength(body.password);
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 400 });
     }
     data.passwordHash = await hashPassword(body.password);
+    // Resetting a password invalidates any sessions issued under the old one.
+    data.sessionVersion = { increment: 1 };
+    passwordReset = true;
   }
 
   const user = await prisma.adminUser.update({ where: { id }, data, select: SAFE_SELECT });
+
+  await logAudit(req, session, 'update', 'AdminUser', id, {
+    fields: Object.keys(body).filter((k) => ['name', 'role', 'active'].includes(k)),
+    passwordReset,
+  });
+
   return NextResponse.json(user);
 }
 
@@ -43,5 +55,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   await prisma.adminUser.delete({ where: { id } });
+  await logAudit(req, session, 'delete', 'AdminUser', id);
   return NextResponse.json({ ok: true });
 }

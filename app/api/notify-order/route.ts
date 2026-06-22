@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
+import { decryptSecret } from '@/lib/crypto';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { getClientIp } from '@/lib/audit';
 
 export interface OrderEmailPayload {
   orderId: string;
@@ -21,6 +24,32 @@ export interface OrderEmailPayload {
 
 function formatNaira(n: number) {
   return '₦' + n.toLocaleString('en-NG');
+}
+
+// Customer-supplied fields (name, notes, item names, etc.) end up interpolated
+// directly into HTML emails — escape them so a malicious checkout submission
+// can't inject markup/scripts into the admin's or customer's email client.
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeOrder(o: OrderEmailPayload): OrderEmailPayload {
+  return {
+    ...o,
+    orderId: escapeHtml(o.orderId),
+    customer: escapeHtml(o.customer),
+    phone: escapeHtml(o.phone),
+    email: o.email ? escapeHtml(o.email) : o.email,
+    area: escapeHtml(o.area),
+    address: o.address ? escapeHtml(o.address) : o.address,
+    notes: o.notes ? escapeHtml(o.notes) : o.notes,
+    items: o.items.map((it) => ({ ...it, name: escapeHtml(it.name) })),
+  };
 }
 
 function paymentLabel(pm: string) {
@@ -372,11 +401,18 @@ function buildCustomerEmailHtml(o: OrderEmailPayload): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const ok = await checkRateLimit(`notify-order:${ip}`, 15, 10 * 60 * 1000);
+    if (!ok) {
+      return NextResponse.json({ ok: false, skipped: true, reason: 'Rate limited' }, { status: 429 });
+    }
+
     const order: OrderEmailPayload = await req.json();
+    const safeOrder = sanitizeOrder(order);
 
     const settings = await prisma.integrationSettings.findUnique({ where: { id: 'singleton' } });
     const gmailUser = settings?.gmailUser || process.env.GMAIL_USER;
-    const gmailPass = settings?.gmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+    const gmailPass = (settings?.gmailAppPassword && decryptSecret(settings.gmailAppPassword)) || process.env.GMAIL_APP_PASSWORD;
     const adminEmail = settings?.adminEmail || process.env.ADMIN_EMAIL;
 
     // If email credentials aren't configured, skip silently (don't block order)
@@ -397,8 +433,8 @@ export async function POST(req: NextRequest) {
         transporter.sendMail({
           from: `"Asian Grocery NG" <${gmailUser}>`,
           to: adminEmail,
-          subject: `🛒 ${sourceLabel} ${order.orderId} — ${formatNaira(order.total)} · ${order.customer}`,
-          html: buildEmailHtml(order),
+          subject: `🛒 ${sourceLabel} ${safeOrder.orderId} — ${formatNaira(order.total)} · ${safeOrder.customer}`,
+          html: buildEmailHtml(safeOrder),
         })
       );
     }
@@ -408,8 +444,8 @@ export async function POST(req: NextRequest) {
         transporter.sendMail({
           from: `"Asian Grocery NG" <${gmailUser}>`,
           to: order.email,
-          subject: `✅ Order Confirmed — ${order.orderId} | Asian Grocery NG`,
-          html: buildCustomerEmailHtml(order),
+          subject: `✅ Order Confirmed — ${safeOrder.orderId} | Asian Grocery NG`,
+          html: buildCustomerEmailHtml(safeOrder),
         })
       );
     }

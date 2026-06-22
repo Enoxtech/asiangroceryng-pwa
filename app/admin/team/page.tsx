@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { UserPlus, Save, X, Trash2, ShieldCheck, Headset, Package } from 'lucide-react';
+import { UserPlus, Save, X, Trash2, ShieldCheck, Headset, Package, KeyRound, LogOut } from 'lucide-react';
+import Image from 'next/image';
 import { useAdminAuthStore, type AdminRole } from '@/store/adminAuthStore';
 
 interface AdminUserRow {
@@ -172,6 +173,161 @@ function AdminRow({ admin, isSelf, onChanged }: { admin: AdminUserRow; isSelf: b
   );
 }
 
+function MySecurityCard() {
+  const { session, checkSession } = useAdminAuthStore();
+  const [setupData, setSetupData] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [disablePassword, setDisablePassword] = useState('');
+  const [showDisable, setShowDisable] = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [revoked, setRevoked] = useState(false);
+
+  async function startSetup() {
+    setError('');
+    const res = await fetch('/api/auth/2fa/setup', { method: 'POST' });
+    if (!res.ok) {
+      setError('Failed to start 2FA setup');
+      return;
+    }
+    setSetupData(await res.json());
+  }
+
+  async function confirmEnable(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    const res = await fetch('/api/auth/2fa/enable', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const { error: msg } = await res.json().catch(() => ({ error: 'Invalid code' }));
+      setError(msg);
+      return;
+    }
+    setSetupData(null);
+    setCode('');
+    checkSession();
+  }
+
+  async function disable2FA(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    const res = await fetch('/api/auth/2fa/disable', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: disablePassword }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const { error: msg } = await res.json().catch(() => ({ error: 'Incorrect password' }));
+      setError(msg);
+      return;
+    }
+    setShowDisable(false);
+    setDisablePassword('');
+    checkSession();
+  }
+
+  async function revokeSessions() {
+    setBusy(true);
+    await fetch('/api/auth/revoke-sessions', { method: 'POST' });
+    setBusy(false);
+    setRevoked(true);
+    setTimeout(() => setRevoked(false), 3000);
+  }
+
+  return (
+    <div className="rounded-2xl border p-5 space-y-4" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center gap-3">
+        <KeyRound className="h-4 w-4 text-brand-red" />
+        <h2 className="font-bold text-white text-sm font-display">My Security</h2>
+      </div>
+
+      {error && <p className="text-xs text-red-400 font-display">{error}</p>}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-200 font-display">Two-Factor Authentication</p>
+          <p className="text-xs text-gray-500 font-display">
+            {session?.totpEnabled ? 'Enabled — your account requires a code at login.' : 'Add an authenticator app code at login.'}
+          </p>
+        </div>
+        {session?.totpEnabled ? (
+          <button onClick={() => setShowDisable(!showDisable)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer font-display">
+            Disable
+          </button>
+        ) : (
+          <button onClick={startSetup}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-red hover:opacity-90 transition-opacity cursor-pointer font-display">
+            Enable
+          </button>
+        )}
+      </div>
+
+      {setupData && (
+        <form onSubmit={confirmEnable} className="border-t pt-4 space-y-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <p className="text-xs text-gray-400 font-display">Scan this QR code with Google Authenticator, Authy, or similar, then enter the 6-digit code to confirm.</p>
+          <div className="bg-white p-3 rounded-xl w-fit">
+            <Image src={setupData.qrCode} alt="2FA QR Code" width={160} height={160} unoptimized />
+          </div>
+          <p className="text-[10px] text-gray-600 font-label break-all">Manual entry key: {setupData.secret}</p>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            className="w-32 px-3 py-2 rounded-xl text-sm font-display border focus:outline-none focus:border-brand-red text-gray-200 bg-[#0f0e0b] border-[rgba(255,255,255,0.08)] text-center tracking-widest"
+          />
+          <div className="flex gap-2">
+            <button type="submit" disabled={busy || code.length !== 6}
+              className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-brand-red hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 font-display">
+              Confirm & Enable
+            </button>
+            <button type="button" onClick={() => { setSetupData(null); setCode(''); }}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer font-display">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {showDisable && (
+        <form onSubmit={disable2FA} className="border-t pt-4 space-y-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1">Confirm your password to disable 2FA</label>
+          <input
+            type="password"
+            value={disablePassword}
+            onChange={(e) => setDisablePassword(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm font-display border focus:outline-none focus:border-brand-red text-gray-200 bg-[#0f0e0b] border-[rgba(255,255,255,0.08)]"
+          />
+          <button type="submit" disabled={busy}
+            className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50 font-display">
+            Disable 2FA
+          </button>
+        </form>
+      )}
+
+      <div className="border-t pt-4 flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div>
+          <p className="text-sm text-gray-200 font-display">Log Out Other Devices</p>
+          <p className="text-xs text-gray-500 font-display">Ends every other active session for your account.</p>
+        </div>
+        <button onClick={revokeSessions} disabled={busy}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer font-display disabled:opacity-50">
+          <LogOut className="h-3.5 w-3.5" /> {revoked ? 'Done ✓' : 'Log Out Others'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminTeamPage() {
   const { session } = useAdminAuthStore();
   const [admins, setAdmins] = useState<AdminUserRow[]>([]);
@@ -242,6 +398,8 @@ export default function AdminTeamPage() {
         })}
       </div>
 
+      <MySecurityCard />
+
       {showCreate && (
         <form onSubmit={handleCreate} className="rounded-2xl border p-5 space-y-4" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
           <h2 className="font-bold text-white text-sm font-display">New Admin Account</h2>
@@ -257,7 +415,7 @@ export default function AdminTeamPage() {
             </div>
             <div>
               <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1">Password</label>
-              <input required type="password" minLength={8} value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} placeholder="Min. 8 characters" className={inputCls} />
+              <input required type="password" minLength={10} value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} placeholder="Min. 10 chars, 1 letter, 1 number" className={inputCls} />
             </div>
             <div>
               <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1">Role</label>

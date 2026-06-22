@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, ShoppingBag, Users,
-  Settings, LogOut, ChevronRight, Store, ImageIcon, LayoutGrid, ShieldCheck,
+  Settings, LogOut, ChevronRight, Store, ImageIcon, LayoutGrid, ShieldCheck, ScrollText,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdminAuthStore, type AdminRole } from '@/store/adminAuthStore';
@@ -20,6 +20,7 @@ const navItems: { href: string; label: string; Icon: React.ElementType; exact?: 
   { href: '/admin/customers', label: 'Customers', Icon: Users, roles: ['super_admin', 'support'] },
   { href: '/admin/settings', label: 'Settings', Icon: Settings, roles: ['super_admin'] },
   { href: '/admin/team', label: 'Admin Team', Icon: ShieldCheck, roles: ['super_admin'] },
+  { href: '/admin/audit-log', label: 'Audit Log', Icon: ScrollText, roles: ['super_admin'] },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

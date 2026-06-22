@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { encryptSecret } from '@/lib/crypto';
+import { logAudit } from '@/lib/audit';
+
+const SECRET_FIELDS = ['paystackSecretKey', 'flutterwaveSecretKey', 'gmailAppPassword'] as const;
 
 // Secret fields are never sent to the client — only a "configured" flag.
 // The actual value can only be overwritten, never read back, same pattern as a password field.
@@ -37,7 +41,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { response } = await requireRole(req, ['super_admin']);
+  const { session, response } = await requireRole(req, ['super_admin']);
   if (response) return response;
 
   const body = await req.json();
@@ -54,7 +58,7 @@ export async function PATCH(req: NextRequest) {
     'adminEmail',
   ] as const) {
     if (typeof body[key] === 'string' && body[key].length > 0) {
-      data[key] = body[key];
+      data[key] = (SECRET_FIELDS as readonly string[]).includes(key) ? encryptSecret(body[key]) : body[key];
     }
   }
 
@@ -63,5 +67,8 @@ export async function PATCH(req: NextRequest) {
     update: data,
     create: { id: 'singleton', ...data },
   });
+
+  await logAudit(req, session, 'update', 'IntegrationSettings', 'singleton', { fields: Object.keys(data) });
+
   return NextResponse.json(toSafeShape(settings));
 }

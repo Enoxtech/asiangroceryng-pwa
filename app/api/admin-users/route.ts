@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireRole, hashPassword } from '@/lib/auth';
+import { requireRole, hashPassword, validatePasswordStrength } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 const SAFE_SELECT = { id: true, name: true, email: true, role: true, active: true, createdAt: true, lastLoginAt: true };
 
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { response } = await requireRole(req, ['super_admin']);
+  const { session, response } = await requireRole(req, ['super_admin']);
   if (response) return response;
 
   const { name, email, password, role } = await req.json();
@@ -23,8 +24,9 @@ export async function POST(req: NextRequest) {
   if (!['super_admin', 'support', 'product_manager'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+  const passwordError = validatePasswordStrength(password);
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 });
   }
 
   const existing = await prisma.adminUser.findUnique({ where: { email: email.toLowerCase() } });
@@ -36,5 +38,8 @@ export async function POST(req: NextRequest) {
     data: { name, email: email.toLowerCase(), passwordHash: await hashPassword(password), role },
     select: SAFE_SELECT,
   });
+
+  await logAudit(req, session, 'create', 'AdminUser', user.id, { email: user.email, role: user.role });
+
   return NextResponse.json(user, { status: 201 });
 }
