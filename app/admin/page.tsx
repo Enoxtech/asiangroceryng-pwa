@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAdminStore } from '@/store/adminStore';
 import Link from 'next/link';
 import { Download, FileText, TrendingUp, ShoppingBag, Users, DollarSign, Package, ExternalLink, MessageCircle } from 'lucide-react';
@@ -276,7 +277,11 @@ tr:nth-child(even){background:#fafaf9}
 
 /* ─── Main Dashboard ──────────────────────────────────────────── */
 export default function AdminDashboardPage() {
-  const { orders, products } = useAdminStore();
+  const { orders, products, hydrateOrders } = useAdminStore();
+
+  useEffect(() => {
+    hydrateOrders();
+  }, [hydrateOrders]);
 
   const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
   const totalOrders = orders.length;

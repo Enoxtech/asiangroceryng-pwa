@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth';
 
 export async function GET() {
   const banners = await prisma.banner.findMany({ orderBy: { position: 'asc' } });
@@ -7,6 +8,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const { response } = await requireRole(req, ['super_admin', 'product_manager']);
+  if (response) return response;
+
   const body = await req.json();
   const count = await prisma.banner.count();
   const banner = await prisma.banner.create({ data: { ...body, position: count } });

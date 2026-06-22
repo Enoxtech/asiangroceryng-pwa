@@ -104,3 +104,31 @@ model BankDetails {
   bankBranch    String @default("")
   note          String @default("")
 }
+
+enum AdminRole {
+  super_admin
+  support
+  product_manager
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+model IntegrationSettings {
+  id                   String @id @default("singleton")
+  paystackPublicKey    String @default("")
+  paystackSecretKey    String @default("")
+  flutterwavePublicKey String @default("")
+  flutterwaveSecretKey String @default("")
+  gmailUser            String @default("")
+  gmailAppPassword     String @default("")
+  adminEmail           String @default("")
+}

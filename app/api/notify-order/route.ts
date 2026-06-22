@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { prisma } from '@/lib/prisma';
 
 export interface OrderEmailPayload {
   orderId: string;
@@ -373,9 +374,10 @@ export async function POST(req: NextRequest) {
   try {
     const order: OrderEmailPayload = await req.json();
 
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
-    const adminEmail = process.env.ADMIN_EMAIL;
+    const settings = await prisma.integrationSettings.findUnique({ where: { id: 'singleton' } });
+    const gmailUser = settings?.gmailUser || process.env.GMAIL_USER;
+    const gmailPass = settings?.gmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+    const adminEmail = settings?.adminEmail || process.env.ADMIN_EMAIL;
 
     // If email credentials aren't configured, skip silently (don't block order)
     if (!gmailUser || !gmailPass) {

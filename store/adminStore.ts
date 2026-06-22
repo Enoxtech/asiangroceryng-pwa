@@ -71,8 +71,12 @@ interface AdminStore {
   categories: Category[];
   bankDetails: BankDetails;
   hydrated: boolean;
+  ordersHydrated: boolean;
 
+  /** Public storefront data only — safe to call for any visitor, admin or not. */
   hydrate: () => Promise<void>;
+  /** Admin-only order list — only call this from authenticated admin pages. */
+  hydrateOrders: () => Promise<void>;
 
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -97,23 +101,25 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
   categories: [],
   bankDetails: defaultBankDetails,
   hydrated: false,
+  ordersHydrated: false,
 
   hydrate: async () => {
     if (get().hydrated) return;
-    const [products, categories, orders, banners, bankDetails] = await Promise.all([
+    const [products, categories, banners, bankDetails] = await Promise.all([
       api<Product[]>('/api/products'),
       api<Category[]>('/api/categories'),
-      api<(AdminOrder & { createdAt: string })[]>('/api/orders'),
       api<BannerSlide[]>('/api/banners'),
       api<BankDetails>('/api/bank-details'),
     ]);
+    set({ products, categories, banners, bankDetails, hydrated: true });
+  },
+
+  hydrateOrders: async () => {
+    if (get().ordersHydrated) return;
+    const orders = await api<(AdminOrder & { createdAt: string })[]>('/api/orders');
     set({
-      products,
-      categories,
       orders: orders.map((o) => ({ ...o, date: o.createdAt.slice(0, 10) })),
-      banners,
-      bankDetails,
-      hydrated: true,
+      ordersHydrated: true,
     });
   },
 

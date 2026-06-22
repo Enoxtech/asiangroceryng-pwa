@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminStore } from '@/store/adminStore';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 import { formatPrice, formatDate } from '@/lib/utils';
 
 const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -18,9 +19,15 @@ const statusColors: Record<string, string> = {
 const FILTERS = ['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
 export default function AdminOrdersPage() {
-  const { orders, updateOrderStatus } = useAdminStore();
+  const { orders, updateOrderStatus, hydrateOrders } = useAdminStore();
+  const { session } = useAdminAuthStore();
+  const canWrite = session?.role !== 'product_manager';
   const [filter, setFilter] = useState('All');
   const [saved, setSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    hydrateOrders();
+  }, [hydrateOrders]);
 
   const filtered = filter === 'All'
     ? orders
@@ -91,22 +98,26 @@ export default function AdminOrdersPage() {
                     {formatDate(order.date)}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <select
-                        defaultValue=""
-                        onChange={(e) => { handleStatusChange(order.id, e.target.value); e.target.value = ''; }}
-                        className="text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-red font-display text-gray-200"
-                        style={{ background: '#0f0e0b', borderColor: 'rgba(255,255,255,0.08)' }}
-                      >
-                        <option value="" disabled>Update…</option>
-                        {STATUS_OPTIONS.filter((s) => s !== order.status).map((s) => (
-                          <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                        ))}
-                      </select>
-                      {saved === order.id && (
-                        <span className="text-[10px] text-green-400 font-label">Saved ✓</span>
-                      )}
-                    </div>
+                    {canWrite ? (
+                      <div className="flex items-center gap-2">
+                        <select
+                          defaultValue=""
+                          onChange={(e) => { handleStatusChange(order.id, e.target.value); e.target.value = ''; }}
+                          className="text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-red font-display text-gray-200"
+                          style={{ background: '#0f0e0b', borderColor: 'rgba(255,255,255,0.08)' }}
+                        >
+                          <option value="" disabled>Update…</option>
+                          {STATUS_OPTIONS.filter((s) => s !== order.status).map((s) => (
+                            <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                          ))}
+                        </select>
+                        {saved === order.id && (
+                          <span className="text-[10px] text-green-400 font-label">Saved ✓</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-600 font-label uppercase">View only</span>
+                    )}
                   </td>
                 </tr>
               ))}

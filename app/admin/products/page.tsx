@@ -5,10 +5,13 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 import { formatPrice } from '@/lib/utils';
 
 export default function AdminProductsPage() {
   const { products, deleteProduct } = useAdminStore();
+  const { session } = useAdminAuthStore();
+  const canWrite = session?.role !== 'support';
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -38,10 +41,12 @@ export default function AdminProductsPage() {
           <h1 className="text-xl font-bold text-white font-display">Products</h1>
           <p className="text-gray-500 text-sm mt-0.5 font-display">{products.length} products total</p>
         </div>
-        <Link href="/admin/products/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-red text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer">
-          <Plus className="h-4 w-4" /> Add Product
-        </Link>
+        {canWrite && (
+          <Link href="/admin/products/new"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-red text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer">
+            <Plus className="h-4 w-4" /> Add Product
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -106,23 +111,27 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <Link href={`/admin/products/${p.id}/edit`}
-                        className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5 cursor-pointer">
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className={`p-1.5 transition-colors rounded-lg cursor-pointer ${
-                          confirmDelete === p.id
-                            ? 'text-red-400 bg-red-500/15 animate-pulse'
-                            : 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
-                        }`}
-                        title={confirmDelete === p.id ? 'Click again to confirm delete' : 'Delete product'}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                    {canWrite ? (
+                      <div className="flex items-center gap-1">
+                        <Link href={`/admin/products/${p.id}/edit`}
+                          className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5 cursor-pointer">
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className={`p-1.5 transition-colors rounded-lg cursor-pointer ${
+                            confirmDelete === p.id
+                              ? 'text-red-400 bg-red-500/15 animate-pulse'
+                              : 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
+                          }`}
+                          title={confirmDelete === p.id ? 'Click again to confirm delete' : 'Delete product'}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-600 font-label uppercase">View only</span>
+                    )}
                   </td>
                 </tr>
               ))}

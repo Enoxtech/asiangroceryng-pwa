@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { response } = await requireRole(req, ['super_admin', 'support', 'product_manager']);
+  if (response) return response;
+
   const orders = await prisma.order.findMany({
     include: { items: true },
     orderBy: { createdAt: 'desc' },
@@ -9,6 +13,7 @@ export async function GET() {
   return NextResponse.json(orders);
 }
 
+// Intentionally public — this is how customers place real orders at checkout.
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const order = await prisma.order.create({

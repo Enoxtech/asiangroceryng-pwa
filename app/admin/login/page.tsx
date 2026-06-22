@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
-import { useAuthStore } from '@/store/authStore';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { user, login } = useAuthStore();
+  const { session, login } = useAdminAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -16,10 +16,10 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (session) {
       router.replace('/admin');
     }
-  }, [user, router]);
+  }, [session, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,12 +28,7 @@ export default function AdminLoginPage() {
     const result = await login(email, password);
     setLoading(false);
     if (!result.success) {
-      setError('Invalid admin credentials.');
-      return;
-    }
-    if (useAuthStore.getState().user?.role !== 'admin') {
-      useAuthStore.getState().logout();
-      setError('Access denied. Admin accounts only.');
+      setError(result.error || 'Invalid admin credentials.');
       return;
     }
     router.push('/admin');

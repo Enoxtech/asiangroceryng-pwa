@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Save, X } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 import { Category } from '@/types';
 
 const categoryIcons: Record<string, string> = {
@@ -12,7 +13,7 @@ const categoryIcons: Record<string, string> = {
   'sauces-condiments': '🧪', snacks: '🍪',
 };
 
-function CategoryRow({ category }: { category: Category }) {
+function CategoryRow({ category, canWrite }: { category: Category; canWrite: boolean }) {
   const { updateCategory, products } = useAdminStore();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(category);
@@ -40,14 +41,18 @@ function CategoryRow({ category }: { category: Category }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setEditing(!editing)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer font-display">
-            Edit
-          </button>
+          {canWrite ? (
+            <button onClick={() => setEditing(!editing)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer font-display">
+              Edit
+            </button>
+          ) : (
+            <span className="text-[10px] text-gray-600 font-label uppercase">View only</span>
+          )}
         </div>
       </div>
 
-      {editing && (
+      {editing && canWrite && (
         <div className="border-t px-4 py-4 space-y-3" style={{ borderColor: 'rgba(255,255,255,0.06)', background: '#0f0e0b' }}>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
@@ -81,6 +86,8 @@ function CategoryRow({ category }: { category: Category }) {
 
 export default function AdminCategoriesPage() {
   const { categories } = useAdminStore();
+  const { session } = useAdminAuthStore();
+  const canWrite = session?.role !== 'support';
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -91,7 +98,7 @@ export default function AdminCategoriesPage() {
 
       <div className="space-y-3">
         {categories.map((cat) => (
-          <CategoryRow key={cat.id} category={cat} />
+          <CategoryRow key={cat.id} category={cat} canWrite={canWrite} />
         ))}
       </div>
     </div>

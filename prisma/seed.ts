@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { hashPassword } from '@/lib/auth';
 import { products } from '@/data/products';
 import { categories } from '@/data/categories';
 
@@ -78,6 +79,28 @@ async function main() {
     });
   }
   console.log(`Seeded ${defaultBanners.length} banners`);
+
+  await prisma.integrationSettings.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: { id: 'singleton' },
+  });
+  console.log('Seeded integration settings singleton');
+
+  const existingSuperAdmin = await prisma.adminUser.findUnique({ where: { email: 'admin@asiangroceryng.com' } });
+  if (!existingSuperAdmin) {
+    await prisma.adminUser.create({
+      data: {
+        name: 'Admin',
+        email: 'admin@asiangroceryng.com',
+        passwordHash: await hashPassword('Admin@2024'),
+        role: 'super_admin',
+      },
+    });
+    console.log('Seeded initial super_admin account (admin@asiangroceryng.com)');
+  } else {
+    console.log('super_admin account already exists, skipping');
+  }
 }
 
 main()
