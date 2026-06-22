@@ -131,6 +131,16 @@ export function Footer() {
           <span className="text-xs font-bold font-label" style={{ color: '#003087' }}>Pay<span style={{ color: '#009cde' }}>Pal</span></span>
         </div>
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-[var(--border-color)]" />
+
+      {/* Legal links */}
+      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-center gap-4">
+        <Link href="/privacy" className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors font-display">Privacy Policy</Link>
+        <span className="text-[var(--border-color)]">·</span>
+        <Link href="/terms" className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors font-display">Terms of Service</Link>
+      </div>
     </footer>
   );
 }
