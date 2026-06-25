@@ -18,6 +18,35 @@ import type { OrderEmailPayload } from '@/app/api/notify-order/route';
 type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
 type DeliveryMethod = 'ship' | 'pickup';
 
+interface PaystackHandler {
+  openIframe: () => void;
+}
+interface PaystackPopSetupOptions {
+  key: string;
+  email: string;
+  amount: number;
+  currency: string;
+  ref: string;
+  callback: (response: { reference: string }) => void;
+  onClose: () => void;
+}
+declare global {
+  interface Window {
+    PaystackPop?: { setup: (opts: PaystackPopSetupOptions) => PaystackHandler };
+  }
+}
+
+function loadPaystackScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.PaystackPop) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Could not load Paystack. Check your connection and try again.'));
+    document.body.appendChild(script);
+  });
+}
+
 const PICKUP_STORE = {
   name: 'Store F11: Ikeja Town-Square',
   address: '131 Obafemi Awolowo way, Ikeja, Lagos, 10001',
@@ -55,8 +84,16 @@ export default function CheckoutPage() {
   const [accountPassword, setAccountPassword] = useState('');
   const [showAccountPassword, setShowAccountPassword] = useState(false);
   const [accountError, setAccountError] = useState('');
+  const [paystack, setPaystack] = useState<{ publicKey: string; enabled: boolean }>({ publicKey: '', enabled: false });
+  const [paymentError, setPaymentError] = useState('');
 
   useEffect(() => { hydrateAuth(); }, [hydrateAuth]);
+  useEffect(() => {
+    fetch('/api/settings/public')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setPaystack({ publicKey: data.paystackPublicKey, enabled: data.paystackEnabled }); })
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     if (user) {
       setForm((f) => ({ ...f, name: f.name || user.name, email: f.email || user.email, phone: f.phone || user.phone, address: f.address || user.address || '' }));
@@ -123,23 +160,18 @@ export default function CheckoutPage() {
     }).catch(() => { /* silent — email is non-critical */ });
   }
 
-  async function handlePlaceOrder(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setAccountError('');
-    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
-
-    // 0a. Optional account creation — runs first so the session cookie is set
-    // before the order is placed, letting the order link to the new account.
+  /** Optional account creation, run before placing/finalizing any order so the
+   *  resulting session cookie lets the order link to the new account. */
+  async function maybeCreateAccount() {
     if (!user && createAccount && accountPassword) {
       const result = await register({ name: form.name, email: form.email, phone: form.phone, password: accountPassword, address: form.address || undefined });
       if (!result.success) {
         setAccountError(result.error || 'Could not create account — order will continue as guest checkout.');
       }
     }
+  }
 
-    await new Promise((r) => setTimeout(r, 1200));
-
+  async function finalizeOrder(orderId: string, paymentRef?: string) {
     const orderDetails = buildOrderDetails(orderId);
 
     // 0. Persist real order to admin orders panel
@@ -159,9 +191,13 @@ export default function CheckoutPage() {
         address: orderDetails.address,
         date: new Date().toISOString().slice(0, 10),
         payment: paymentMethod,
+        paymentRef,
       });
     } catch (err) {
       console.error('[checkout] failed to save order to admin panel', err);
+      setLoading(false);
+      setPaymentError('Your payment succeeded but we could not save the order. Please contact us on WhatsApp with your payment reference.');
+      return;
     }
 
     // 1. Admin email (instant, fire-and-forget)
@@ -195,6 +231,62 @@ export default function CheckoutPage() {
 
     clearCart();
     router.push(`/order-success?order=${orderId}`);
+  }
+
+  async function handlePlaceOrder(e: React.FormEvent) {
+    e.preventDefault();
+    setPaymentError('');
+
+    if (paymentMethod === 'paystack') {
+      await handlePaystackCheckout();
+      return;
+    }
+
+    setLoading(true);
+    setAccountError('');
+    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
+    await maybeCreateAccount();
+    await new Promise((r) => setTimeout(r, 1200));
+    await finalizeOrder(orderId);
+  }
+
+  async function handlePaystackCheckout() {
+    if (!paystack.enabled || !paystack.publicKey) return;
+    setLoading(true);
+    setAccountError('');
+    setPaymentError('');
+
+    try {
+      await maybeCreateAccount();
+      await loadPaystackScript();
+    } catch (err) {
+      setLoading(false);
+      setPaymentError(err instanceof Error ? err.message : 'Could not start payment.');
+      return;
+    }
+
+    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
+
+    if (!window.PaystackPop) {
+      setLoading(false);
+      setPaymentError('Could not load Paystack. Please try again.');
+      return;
+    }
+
+    const handler = window.PaystackPop.setup({
+      key: paystack.publicKey,
+      email: form.email,
+      amount: Math.round(total * 100),
+      currency: 'NGN',
+      ref: orderId,
+      callback: (response) => {
+        finalizeOrder(orderId, response.reference);
+      },
+      onClose: () => {
+        setLoading(false);
+      },
+    });
+    handler.openIframe();
   }
 
   function handleWhatsAppOrder() {
@@ -436,8 +528,7 @@ export default function CheckoutPage() {
           <h2 className="font-bold text-gray-900 text-lg">Choose Payment Method</h2>
 
           {[
-            { id: 'paystack', label: 'Paystack', desc: 'Debit/credit card, bank transfer, USSD', icon: <CreditCard className="h-5 w-5" />, badge: 'Coming soon' },
-            { id: 'flutterwave', label: 'Flutterwave', desc: 'Cards, mobile money, bank', icon: <CreditCard className="h-5 w-5" />, badge: 'Coming soon' },
+            { id: 'paystack', label: 'Paystack', desc: 'Debit/credit card, bank transfer, USSD', icon: <CreditCard className="h-5 w-5" />, badge: paystack.enabled ? null : 'Coming soon' },
             { id: 'bank_transfer', label: 'Bank Transfer', desc: 'Transfer to our account details', icon: <Building2 className="h-5 w-5" />, badge: null },
             { id: 'pay_on_delivery', label: 'Pay on Delivery', desc: 'Cash on delivery (Lagos only)', icon: <Banknote className="h-5 w-5" />, badge: null },
           ].map(({ id, label, desc, icon, badge }) => (
@@ -481,6 +572,12 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {paymentError && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              {paymentError}
+            </div>
+          )}
+
           {/* Final summary */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
             {items.slice(0, 3).map((i) => (
@@ -494,8 +591,8 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button type="submit" size="lg" loading={loading} className="w-full" disabled={paymentMethod === 'paystack' || paymentMethod === 'flutterwave'}>
-              {paymentMethod === 'paystack' || paymentMethod === 'flutterwave' ? 'Coming Soon' : `Place Order · ${formatPrice(total)}`}
+            <Button type="submit" size="lg" loading={loading} className="w-full" disabled={paymentMethod === 'paystack' && !paystack.enabled}>
+              {paymentMethod === 'paystack' && !paystack.enabled ? 'Coming Soon' : paymentMethod === 'paystack' ? `Pay with Paystack · ${formatPrice(total)}` : `Place Order · ${formatPrice(total)}`}
             </Button>
             <button type="button" onClick={handleWhatsAppOrder} className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors">
               <MessageCircle className="h-5 w-5" /> Order via WhatsApp

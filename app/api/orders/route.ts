@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
+import { verifyPaystackTransaction } from '@/lib/paystack';
 
 export async function GET(req: NextRequest) {
   const { response } = await requireRole(req, ['super_admin', 'support', 'product_manager']);
@@ -26,6 +27,29 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const customerSession = await getCustomerSession(req);
+
+  // Never trust a client-supplied "confirmed" status for card payments —
+  // re-verify the Paystack reference server-side before honoring it.
+  let status = 'pending';
+  let paymentRef: string | undefined;
+  if (body.payment === 'paystack') {
+    if (typeof body.paymentRef !== 'string' || !body.paymentRef) {
+      return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 });
+    }
+    try {
+      const data = await verifyPaystackTransaction(body.paymentRef);
+      if (!data || data.status !== 'success' || data.amount !== Math.round(body.total * 100)) {
+        return NextResponse.json({ error: 'Payment could not be verified' }, { status: 400 });
+      }
+      status = 'confirmed';
+      paymentRef = body.paymentRef;
+    } catch {
+      return NextResponse.json({ error: 'Payment could not be verified' }, { status: 400 });
+    }
+  } else {
+    status = body.status ?? 'pending';
+  }
+
   const order = await prisma.order.create({
     data: {
       id: body.id,
@@ -37,7 +61,8 @@ export async function POST(req: NextRequest) {
       deliveryFee: body.deliveryFee,
       discount: body.discount ?? 0,
       total: body.total,
-      status: body.status ?? 'pending',
+      status,
+      paymentRef,
       area: body.area,
       address: body.address,
       payment: body.payment,

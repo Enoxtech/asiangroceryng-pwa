@@ -68,6 +68,7 @@ model Order {
   area          String
   address       String?
   payment       String
+  paymentRef    String?
   notes         String?
   source        String      @default("checkout")
   createdAt     DateTime    @default(now())

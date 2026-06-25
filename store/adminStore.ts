@@ -22,6 +22,7 @@ export interface AdminOrder {
   address?: string;
   date: string;
   payment: string;
+  paymentRef?: string;
 }
 
 export type SlideTransition = 'fade' | 'slide' | 'zoom';
