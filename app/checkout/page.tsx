@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { deliveryAreas } from '@/data/products';
 import { Button } from '@/components/ui/Button';
-import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X, Truck, Store, MapPin, Clock } from 'lucide-react';
+import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X, Truck, Store, MapPin, Clock, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildCustomerConfirmation, openWhatsApp, ADMIN_WHATSAPP, buildAdminAlert } from '@/lib/whatsapp';
 import { useUserNotificationStore } from '@/store/userNotificationStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAdminStore } from '@/store/adminStore';
+import { useAuthStore } from '@/store/authStore';
 import type { OrderEmailPayload } from '@/app/api/notify-order/route';
 
 type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
@@ -36,6 +37,7 @@ export default function CheckoutPage() {
   const { addNotification: addUserNotif } = useUserNotificationStore();
   const { addNotification: addAdminNotif } = useNotificationStore();
   const { bankDetails, addOrder } = useAdminStore();
+  const { user, hydrate: hydrateAuth, register } = useAuthStore();
   const router = useRouter();
   const subtotal = totalPrice();
   const [step, setStep] = useState<'details' | 'payment'>('details');
@@ -49,6 +51,17 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<typeof PROMO_CODES[string] & { code: string } | null>(null);
   const [couponError, setCouponError] = useState('');
+  const [createAccount, setCreateAccount] = useState(false);
+  const [accountPassword, setAccountPassword] = useState('');
+  const [showAccountPassword, setShowAccountPassword] = useState(false);
+  const [accountError, setAccountError] = useState('');
+
+  useEffect(() => { hydrateAuth(); }, [hydrateAuth]);
+  useEffect(() => {
+    if (user) {
+      setForm((f) => ({ ...f, name: f.name || user.name, email: f.email || user.email, phone: f.phone || user.phone, address: f.address || user.address || '' }));
+    }
+  }, [user]);
 
   function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
@@ -113,7 +126,18 @@ export default function CheckoutPage() {
   async function handlePlaceOrder(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setAccountError('');
     const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
+
+    // 0a. Optional account creation — runs first so the session cookie is set
+    // before the order is placed, letting the order link to the new account.
+    if (!user && createAccount && accountPassword) {
+      const result = await register({ name: form.name, email: form.email, phone: form.phone, password: accountPassword, address: form.address || undefined });
+      if (!result.success) {
+        setAccountError(result.error || 'Could not create account — order will continue as guest checkout.');
+      }
+    }
+
     await new Promise((r) => setTimeout(r, 1200));
 
     const orderDetails = buildOrderDetails(orderId);
@@ -238,9 +262,42 @@ export default function CheckoutPage() {
             <input required value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="+234 800 000 0000" type="tel" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
-            <input value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="you@email.com" type="email" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address *</label>
+            <input required value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="you@email.com" type="email" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red" />
           </div>
+
+          {!user && (
+            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createAccount}
+                  onChange={(e) => setCreateAccount(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-brand-red"
+                />
+                <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <UserPlus className="h-4 w-4 text-brand-red" /> Create an account to track this order (optional)
+                </span>
+              </label>
+              {createAccount && (
+                <div className="mt-3 relative">
+                  <input
+                    type={showAccountPassword ? 'text' : 'password'}
+                    required={createAccount}
+                    value={accountPassword}
+                    onChange={(e) => setAccountPassword(e.target.value)}
+                    placeholder="Choose a password (10+ characters)"
+                    className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                  />
+                  <button type="button" onClick={() => setShowAccountPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showAccountPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              )}
+              {accountError && <p className="text-xs text-red-500 mt-2">{accountError}</p>}
+            </div>
+          )}
+
           {deliveryMethod === 'ship' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Address *</label>

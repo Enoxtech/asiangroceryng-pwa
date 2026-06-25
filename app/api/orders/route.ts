@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { getCustomerSession } from '@/lib/customerAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
 
@@ -24,12 +25,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
+  const customerSession = await getCustomerSession(req);
   const order = await prisma.order.create({
     data: {
       id: body.id,
       customer: body.customer,
       phone: body.phone,
       email: body.email,
+      customerId: customerSession?.id,
       subtotal: body.subtotal,
       deliveryFee: body.deliveryFee,
       discount: body.discount ?? 0,

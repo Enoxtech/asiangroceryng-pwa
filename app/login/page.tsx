@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
@@ -11,18 +12,20 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
-  const { user, login } = useAuthStore();
+  const { user, login, hydrate, hydrated } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => { hydrate(); }, [hydrate]);
+
   useEffect(() => {
-    if (user?.role === 'customer') {
-      router.replace('/account');
+    if (hydrated && user) {
+      router.replace(from || '/account');
     }
-  }, [user, router]);
+  }, [user, hydrated, router, from]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,14 +36,8 @@ function LoginForm() {
     if (!result.success) {
       setError(result.error || 'Login failed');
     } else {
-      router.push('/account');
+      router.push(from || '/account');
     }
-  }
-
-  function fillDemo() {
-    setEmail('demo@customer.com');
-    setPassword('Demo@2024');
-    setError('');
   }
 
   return (
@@ -82,9 +79,14 @@ function LoginForm() {
               />
             </div>
             <div>
-              <label className="block text-xs font-label uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-label uppercase tracking-wide text-[var(--text-muted)]">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-xs text-brand-red hover:opacity-75 font-display">
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -120,21 +122,12 @@ function LoginForm() {
           </form>
         </div>
 
-        {/* Demo credentials */}
-        <div className="mt-5 p-4 rounded-[20px] border border-[var(--border-color)] bg-[var(--surface)]">
-          <p className="text-[11px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">Demo Account</p>
-          <button
-            onClick={fillDemo}
-            className="w-full p-3 rounded-xl bg-[var(--bg)] border border-[var(--border-color)] text-left hover:border-[var(--green)] transition-colors group"
-          >
-            <p className="text-[10px] font-label uppercase tracking-widest text-[var(--text-muted)] mb-0.5">Customer</p>
-            <p className="text-xs font-semibold text-[var(--text-primary)] font-display group-hover:text-[var(--green)]">demo@customer.com</p>
-            <p className="text-[10px] text-[var(--text-muted)] font-label">Demo@2024</p>
-          </button>
-          <p className="text-[10px] text-[var(--text-muted)] text-center mt-2 font-display">Click above to auto-fill credentials</p>
-        </div>
+        <p className="text-center mt-5 text-sm text-[var(--text-muted)] font-display">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="font-semibold text-brand-red hover:opacity-75">Create one</Link>
+        </p>
 
-        <p className="text-center mt-4 text-sm text-[var(--text-muted)] font-display">
+        <p className="text-center mt-2 text-sm text-[var(--text-muted)] font-display">
           <a href="/" className="hover:text-[var(--text-secondary)] transition-colors">← Back to store</a>
         </p>
       </div>

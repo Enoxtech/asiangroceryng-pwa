@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAdminStore } from '@/store/adminStore';
 import Link from 'next/link';
 import { Download, FileText, TrendingUp, ShoppingBag, Users, DollarSign, Package, ExternalLink, MessageCircle } from 'lucide-react';
@@ -278,9 +278,14 @@ tr:nth-child(even){background:#fafaf9}
 /* ─── Main Dashboard ──────────────────────────────────────────── */
 export default function AdminDashboardPage() {
   const { orders, products, hydrateOrders } = useAdminStore();
+  const [customerCount, setCustomerCount] = useState<number | null>(null);
 
   useEffect(() => {
     hydrateOrders();
+    fetch('/api/customers')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((c) => setCustomerCount(c.length))
+      .catch(() => setCustomerCount(0));
   }, [hydrateOrders]);
 
   const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
@@ -328,9 +333,9 @@ export default function AdminDashboardPage() {
         <KpiCard label="Avg Order Value" value={`₦${(avgOrder / 1000).toFixed(1)}k`}
           sub="vs last month" icon={TrendingUp} trend={-2.3}
           sparkValues={[6800, 7200, 6900, 7500, 7100, 7400, 7200]} color="#8B5CF6" />
-        <KpiCard label="Customers" value="142"
-          sub="this month" icon={Users} trend={5.7}
-          sparkValues={[18, 24, 28, 22, 31, 38, 41].map((v) => v * 3.5)} color="#10B981" />
+        <KpiCard label="Customers" value={customerCount === null ? '–' : String(customerCount)}
+          sub="registered accounts" icon={Users} trend={0}
+          sparkValues={[1, 1, 1, 1, 1, 1, customerCount || 1]} color="#10B981" />
       </div>
 
       {/* Alerts */}

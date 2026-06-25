@@ -14,7 +14,7 @@
 - [x] Order success page
 - [x] Account/login page (UI only)
 - [x] Wishlist page
-- [x] Order tracking page (demo)
+- [x] Order tracking page (real lookup by order ID + phone)
 - [x] Contact page
 - [x] Deals page
 - [x] Admin dashboard (mock data)

@@ -72,6 +72,10 @@ model Order {
   source        String      @default("checkout")
   createdAt     DateTime    @default(now())
   items         OrderItem[]
+  customerId    String?
+  customerAccount Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
 }
 
 model OrderItem {
@@ -125,6 +129,26 @@ model AdminUser {
   sessionVersion      Int       @default(0)
   totpSecret          String?
   totpEnabled         Boolean   @default(false)
+}
+
+model Customer {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  phone               String
+  address             String?
+  emailVerified       Boolean   @default(false)
+  verifyToken         String?   @unique
+  verifyTokenExpires  DateTime?
+  resetToken          String?   @unique
+  resetTokenExpires   DateTime?
+  sessionVersion      Int       @default(0)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  lastLoginAt         DateTime?
+  orders              Order[]
 }
 
 model IntegrationSettings {

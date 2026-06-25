@@ -1,65 +1,83 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-export type UserRole = 'admin' | 'customer';
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
-  phone?: string;
-  address?: string;
-  avatar?: string;
+  phone: string;
+  address: string | null;
+  emailVerified: boolean;
 }
 
 interface AuthState {
   user: AuthUser | null;
+  hydrated: boolean;
+  hydrate: () => Promise<void>;
+  register: (data: { name: string; email: string; phone: string; password: string; address?: string }) => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  updateProfile: (data: Partial<Pick<AuthUser, 'name' | 'phone' | 'address'>>) => void;
+  logout: () => Promise<void>;
+  updateProfile: (data: Partial<Pick<AuthUser, 'name' | 'phone' | 'address'>>) => Promise<{ success: boolean; error?: string }>;
+  resendVerification: () => Promise<{ success: boolean; error?: string }>;
 }
 
-const MOCK_USERS: Array<AuthUser & { password: string }> = [
-  {
-    id: 'admin-1',
-    name: 'Admin',
-    email: 'admin@asiangroceryng.com',
-    password: 'Admin@2024',
-    role: 'admin',
-  },
-  {
-    id: 'user-1',
-    name: 'Demo Customer',
-    email: 'demo@customer.com',
-    password: 'Demo@2024',
-    role: 'customer',
-    phone: '08012345678',
-    address: '15 Marina Road, Lagos Island, Lagos',
-  },
-];
+async function api<T>(url: string, options?: RequestInit): Promise<{ data: T | null; error?: string; status: number }> {
+  const res = await fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) return { data: null, error: json?.error || 'Something went wrong', status: res.status };
+  return { data: json, status: res.status };
+}
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      login: async (email, password) => {
-        await new Promise((r) => setTimeout(r, 800));
-        const found = MOCK_USERS.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        if (!found) return { success: false, error: 'Invalid email or password.' };
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password: _pw, ...user } = found;
-        set({ user });
-        return { success: true };
-      },
-      logout: () => set({ user: null }),
-      updateProfile: (data) =>
-        set((state) => ({
-          user: state.user ? { ...state.user, ...data } : null,
-        })),
-    }),
-    { name: 'agng-auth' }
-  )
-);
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  user: null,
+  hydrated: false,
+
+  hydrate: async () => {
+    if (get().hydrated) return;
+    const { data } = await api<AuthUser>('/api/customer-auth/me');
+    set({ user: data, hydrated: true });
+  },
+
+  register: async (payload) => {
+    const { data, error } = await api<AuthUser>('/api/customer-auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!data) return { success: false, error };
+    set({ user: data, hydrated: true });
+    return { success: true };
+  },
+
+  login: async (email, password) => {
+    const { data, error } = await api<AuthUser>('/api/customer-auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    if (!data) return { success: false, error };
+    set({ user: data, hydrated: true });
+    return { success: true };
+  },
+
+  logout: async () => {
+    await api('/api/customer-auth/logout', { method: 'POST' });
+    set({ user: null });
+  },
+
+  updateProfile: async (data) => {
+    const { data: updated, error } = await api<AuthUser>('/api/customer-auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!updated) return { success: false, error };
+    set({ user: updated });
+    return { success: true };
+  },
+
+  resendVerification: async () => {
+    const { error } = await api('/api/customer-auth/resend-verification', { method: 'POST' });
+    if (error) return { success: false, error };
+    return { success: true };
+  },
+}));
