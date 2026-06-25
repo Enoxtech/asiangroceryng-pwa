@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Heart, ShoppingCart, Zap, MessageCircle, HelpCircle, ChevronDown, ChevronUp, Star, Truck, RotateCcw, Thermometer } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 import { useCartStore } from '@/store/cartStore';
@@ -47,6 +47,7 @@ const spiceLabels = {
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const router = useRouter();
   const { products, hydrated } = useAdminStore();
   const product = products.find((p) => p.slug === slug);
 
@@ -123,6 +124,11 @@ export default function ProductDetailPage() {
     addItem(product!, qty);
     showToast(`${qty > 1 ? `${qty}×` : ''} ${product!.name} added to cart`, 'cart', '🛒');
     openCart();
+  }
+
+  function handleBuyNow() {
+    addItem(product!, qty);
+    router.push('/checkout');
   }
 
   function toggleSection(id: string) {
@@ -290,11 +296,9 @@ export default function ProductDetailPage() {
           {/* Secondary actions */}
           <div className="grid grid-cols-2 gap-2 mb-6">
             {product.inStock && (
-              <Link href="/checkout">
-                <Button variant="outline" size="md" className="w-full">
-                  <Zap className="h-4 w-4" /> Buy Now
-                </Button>
-              </Link>
+              <Button onClick={handleBuyNow} variant="outline" size="md" className="w-full">
+                <Zap className="h-4 w-4" /> Buy Now
+              </Button>
             )}
             <a href={getWhatsAppOrderUrl(product.name, product.price)} target="_blank" rel="noopener noreferrer">
               <Button variant="secondary" size="md" className="w-full">
