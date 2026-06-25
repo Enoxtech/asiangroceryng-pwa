@@ -36,15 +36,29 @@ declare global {
   }
 }
 
+let paystackScriptPromise: Promise<void> | null = null;
+
 function loadPaystackScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.PaystackPop) { resolve(); return; }
+  if (window.PaystackPop) return Promise.resolve();
+  if (paystackScriptPromise) return paystackScriptPromise;
+
+  paystackScriptPromise = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      paystackScriptPromise = null;
+      reject(new Error('Could not connect to Paystack — your network may be blocking it. Try a different connection, or use Bank Transfer / Pay on Delivery instead.'));
+    }, 12000);
+
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Could not load Paystack. Check your connection and try again.'));
+    script.onload = () => { clearTimeout(timeout); resolve(); };
+    script.onerror = () => {
+      clearTimeout(timeout);
+      paystackScriptPromise = null;
+      reject(new Error('Could not load Paystack. Check your connection and try again.'));
+    };
     document.body.appendChild(script);
   });
+  return paystackScriptPromise;
 }
 
 const PICKUP_STORE = {
