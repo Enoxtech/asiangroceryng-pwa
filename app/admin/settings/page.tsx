@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Store, Phone, Clock, MessageCircle, Building2, CreditCard, Mail } from 'lucide-react';
+import { Save, Store, Phone, Clock, MessageCircle, Building2, CreditCard, Mail, Percent } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 
 const sections = [
@@ -45,6 +45,14 @@ interface IntegrationSettingsView {
   gmailUser: string;
   gmailAppPasswordSet: boolean;
   adminEmail: string;
+  resendFromEmail: string;
+  resendApiKeySet: boolean;
+  vatPercent: number;
+  whatsappPhoneNumberId: string;
+  whatsappAccessTokenSet: boolean;
+  whatsappBusinessAccountId: string;
+  whatsappOrderTemplateName: string;
+  whatsappTemplateLanguage: string;
 }
 
 export default function AdminSettingsPage() {
@@ -66,9 +74,19 @@ export default function AdminSettingsPage() {
     flutterwavePublicKey: '',
     flutterwaveSecretKey: '',
   });
-  const [email, setEmail] = useState({ gmailUser: '', gmailAppPassword: '', adminEmail: '' });
+  const [email, setEmail] = useState({ gmailUser: '', gmailAppPassword: '', adminEmail: '', resendApiKey: '', resendFromEmail: '' });
+  const [tax, setTax] = useState({ vatPercent: 0 });
+  const [whatsapp, setWhatsapp] = useState({
+    whatsappPhoneNumberId: '',
+    whatsappAccessToken: '',
+    whatsappBusinessAccountId: '',
+    whatsappOrderTemplateName: '',
+    whatsappTemplateLanguage: 'en_US',
+  });
   const [paymentSaved, setPaymentSaved] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
+  const [taxSaved, setTaxSaved] = useState(false);
+  const [whatsappSaved, setWhatsappSaved] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings/integrations')
@@ -82,7 +100,15 @@ export default function AdminSettingsPage() {
           flutterwavePublicKey: data.flutterwavePublicKey,
           flutterwaveSecretKey: '',
         });
-        setEmail({ gmailUser: data.gmailUser, gmailAppPassword: '', adminEmail: data.adminEmail });
+        setEmail({ gmailUser: data.gmailUser, gmailAppPassword: '', adminEmail: data.adminEmail, resendApiKey: '', resendFromEmail: data.resendFromEmail });
+        setTax({ vatPercent: data.vatPercent });
+        setWhatsapp({
+          whatsappPhoneNumberId: data.whatsappPhoneNumberId,
+          whatsappAccessToken: '',
+          whatsappBusinessAccountId: data.whatsappBusinessAccountId,
+          whatsappOrderTemplateName: data.whatsappOrderTemplateName,
+          whatsappTemplateLanguage: data.whatsappTemplateLanguage,
+        });
       })
       .catch(() => {});
   }, []);
@@ -122,9 +148,38 @@ export default function AdminSettingsPage() {
     if (res.ok) {
       const data: IntegrationSettingsView = await res.json();
       setIntegrations(data);
-      setEmail((e) => ({ ...e, gmailAppPassword: '' }));
+      setEmail((e) => ({ ...e, gmailAppPassword: '', resendApiKey: '' }));
       setEmailSaved(true);
       setTimeout(() => setEmailSaved(false), 2000);
+    }
+  }
+
+  async function handleTaxSave() {
+    const res = await fetch('/api/settings/integrations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tax),
+    });
+    if (res.ok) {
+      const data: IntegrationSettingsView = await res.json();
+      setIntegrations(data);
+      setTaxSaved(true);
+      setTimeout(() => setTaxSaved(false), 2000);
+    }
+  }
+
+  async function handleWhatsappSave() {
+    const res = await fetch('/api/settings/integrations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(whatsapp),
+    });
+    if (res.ok) {
+      const data: IntegrationSettingsView = await res.json();
+      setIntegrations(data);
+      setWhatsapp((w) => ({ ...w, whatsappAccessToken: '' }));
+      setWhatsappSaved(true);
+      setTimeout(() => setWhatsappSaved(false), 2000);
     }
   }
 
@@ -170,6 +225,44 @@ export default function AdminSettingsPage() {
         </div>
       ))}
 
+      {/* Tax / VAT */}
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <Percent className="h-4 w-4 text-purple-400" />
+          <h2 className="font-bold text-white text-sm font-display">Tax / VAT</h2>
+          <span className="ml-auto text-[10px] font-label uppercase px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300">
+            {tax.vatPercent > 0 ? `${tax.vatPercent}% applied` : 'Disabled'}
+          </span>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-500 font-display">
+            VAT is calculated on the order subtotal (not delivery) and shown as a separate line at checkout. Set to 0 to disable.
+          </p>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">VAT Percentage (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              value={tax.vatPercent}
+              onChange={(e) => setTax({ vatPercent: Number(e.target.value) })}
+              placeholder="7.5"
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+          <button
+            onClick={handleTaxSave}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold font-display transition-all w-full justify-center"
+            style={{ background: taxSaved ? '#10B981' : '#7c3aed', color: 'white' }}
+          >
+            <Save className="h-4 w-4" />
+            {taxSaved ? 'VAT Setting Saved!' : 'Save VAT Setting'}
+          </button>
+        </div>
+      </div>
+
       {/* Bank Transfer Details */}
       <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -213,17 +306,104 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* WhatsApp integration status */}
+      {/* WhatsApp Business Platform (automated notifications) */}
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <MessageCircle className="h-4 w-4 text-green-400" />
+          <h2 className="font-bold text-white text-sm font-display">WhatsApp Notifications (Cloud API)</h2>
+          <span
+            className="ml-auto text-[10px] font-label uppercase px-2 py-0.5 rounded-full"
+            style={{
+              background: integrations?.whatsappAccessTokenSet ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+              color: integrations?.whatsappAccessTokenSet ? '#34d399' : '#fbbf24',
+            }}
+          >
+            {integrations?.whatsappAccessTokenSet ? 'Configured' : 'Setup Required'}
+          </span>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-500 font-display">
+            Sends automatic order updates via WhatsApp (not the manual click-to-chat link below). Requires a Meta WhatsApp
+            Business Platform account and one approved message template. The click-to-chat &quot;Order via WhatsApp&quot; button
+            on checkout still works independently of this.
+          </p>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Phone Number ID</label>
+            <input
+              type="text"
+              value={whatsapp.whatsappPhoneNumberId}
+              onChange={(e) => setWhatsapp((w) => ({ ...w, whatsappPhoneNumberId: e.target.value }))}
+              placeholder="From Meta Business Manager → WhatsApp → API Setup"
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">
+              Access Token {integrations?.whatsappAccessTokenSet && <span className="text-emerald-400">(currently set)</span>}
+            </label>
+            <input
+              type="password"
+              value={whatsapp.whatsappAccessToken}
+              onChange={(e) => setWhatsapp((w) => ({ ...w, whatsappAccessToken: e.target.value }))}
+              placeholder={integrations?.whatsappAccessTokenSet ? '••••••••••••••••' : 'Permanent system-user token (recommended)'}
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Business Account ID (optional)</label>
+            <input
+              type="text"
+              value={whatsapp.whatsappBusinessAccountId}
+              onChange={(e) => setWhatsapp((w) => ({ ...w, whatsappBusinessAccountId: e.target.value }))}
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Approved Template Name</label>
+              <input
+                type="text"
+                value={whatsapp.whatsappOrderTemplateName}
+                onChange={(e) => setWhatsapp((w) => ({ ...w, whatsappOrderTemplateName: e.target.value }))}
+                placeholder="order_update"
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Template Language</label>
+              <input
+                type="text"
+                value={whatsapp.whatsappTemplateLanguage}
+                onChange={(e) => setWhatsapp((w) => ({ ...w, whatsappTemplateLanguage: e.target.value }))}
+                placeholder="en_US"
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleWhatsappSave}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold font-display transition-all w-full justify-center"
+            style={{ background: whatsappSaved ? '#10B981' : '#16A34A', color: 'white' }}
+          >
+            <Save className="h-4 w-4" />
+            {whatsappSaved ? 'WhatsApp Settings Saved!' : 'Save WhatsApp Settings'}
+          </button>
+        </div>
+      </div>
+
+      {/* WhatsApp click-to-chat status */}
       <div className="rounded-2xl border p-5" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3 mb-4">
           <MessageCircle className="h-4 w-4 text-green-400" />
-          <h2 className="font-bold text-white text-sm font-display">WhatsApp Integration</h2>
+          <h2 className="font-bold text-white text-sm font-display">WhatsApp Click-to-Chat</h2>
           <span className="ml-auto text-[10px] font-label uppercase px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">Active</span>
         </div>
-        <p className="text-xs text-gray-400 font-display">WhatsApp ordering is active. Customers can order directly via WhatsApp. Set your number above in &quot;Contact &amp; Delivery&quot;.</p>
-        <div className="mt-3 p-3 rounded-xl border text-xs font-label text-gray-500" style={{ background: '#0f0e0b', borderColor: 'rgba(255,255,255,0.06)' }}>
-          NEXT_PUBLIC_WHATSAPP_NUMBER=2348000000000
-        </div>
+        <p className="text-xs text-gray-400 font-display">Always-on free link-based ordering. Customers can order directly via WhatsApp. Set your number above in &quot;Contact &amp; Delivery&quot;.</p>
       </div>
 
       {/* Payment Gateway Keys */}
@@ -313,7 +493,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* Email Notifications (Gmail) */}
+      {/* Email Notifications */}
       <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <Mail className="h-4 w-4 text-red-400" />
@@ -321,42 +501,75 @@ export default function AdminSettingsPage() {
           <span
             className="ml-auto text-[10px] font-label uppercase px-2 py-0.5 rounded-full"
             style={{
-              background: integrations?.gmailAppPasswordSet ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
-              color: integrations?.gmailAppPasswordSet ? '#34d399' : '#fbbf24',
+              background: integrations?.resendApiKeySet || integrations?.gmailAppPasswordSet ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+              color: integrations?.resendApiKeySet || integrations?.gmailAppPasswordSet ? '#34d399' : '#fbbf24',
             }}
           >
-            {integrations?.gmailAppPasswordSet ? 'Configured' : 'Setup Required'}
+            {integrations?.resendApiKeySet ? 'Resend Active' : integrations?.gmailAppPasswordSet ? 'Gmail Active' : 'Setup Required'}
           </span>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-5">
           <p className="text-xs text-gray-500 font-display">
-            Order confirmation emails (to you and to customers) are sent via Gmail SMTP. Generate an app password at{' '}
-            <span className="text-gray-300">myaccount.google.com/apppasswords</span>.
+            <strong className="text-gray-300">Resend is recommended</strong> — Gmail SMTP from a personal address often lands in
+            spam. If a Resend API key is set, it&apos;s used for all order/account emails; otherwise Gmail is used as a fallback.
           </p>
-          <div>
-            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Gmail Address (sends from)</label>
-            <input
-              type="email"
-              value={email.gmailUser}
-              onChange={(e) => setEmail((s) => ({ ...s, gmailUser: e.target.value }))}
-              placeholder="yourstore@gmail.com"
-              className={inputCls}
-              style={inputStyle}
-            />
+
+          <div className="space-y-3 pb-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <p className="text-xs font-bold text-gray-300 font-display">Resend (recommended)</p>
+            <div>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">
+                API Key {integrations?.resendApiKeySet && <span className="text-emerald-400">(currently set)</span>}
+              </label>
+              <input
+                type="password"
+                value={email.resendApiKey}
+                onChange={(e) => setEmail((s) => ({ ...s, resendApiKey: e.target.value }))}
+                placeholder={integrations?.resendApiKeySet ? '••••••••••••••••' : 're_xxxxxxxxxxxxxxxx'}
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">From Address (must be on a verified domain)</label>
+              <input
+                type="email"
+                value={email.resendFromEmail}
+                onChange={(e) => setEmail((s) => ({ ...s, resendFromEmail: e.target.value }))}
+                placeholder="orders@asiangroceryng.com"
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">
-              Gmail App Password {integrations?.gmailAppPasswordSet && <span className="text-emerald-400">(currently set)</span>}
-            </label>
-            <input
-              type="password"
-              value={email.gmailAppPassword}
-              onChange={(e) => setEmail((s) => ({ ...s, gmailAppPassword: e.target.value }))}
-              placeholder={integrations?.gmailAppPasswordSet ? '••••••••••••••••' : 'xxxx xxxx xxxx xxxx'}
-              className={inputCls}
-              style={inputStyle}
-            />
+
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-gray-300 font-display">Gmail (fallback)</p>
+            <div>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Gmail Address (sends from)</label>
+              <input
+                type="email"
+                value={email.gmailUser}
+                onChange={(e) => setEmail((s) => ({ ...s, gmailUser: e.target.value }))}
+                placeholder="yourstore@gmail.com"
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">
+                Gmail App Password {integrations?.gmailAppPasswordSet && <span className="text-emerald-400">(currently set)</span>}
+              </label>
+              <input
+                type="password"
+                value={email.gmailAppPassword}
+                onChange={(e) => setEmail((s) => ({ ...s, gmailAppPassword: e.target.value }))}
+                placeholder={integrations?.gmailAppPasswordSet ? '••••••••••••••••' : 'xxxx xxxx xxxx xxxx'}
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
           </div>
+
           <div>
             <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Admin Notification Email</label>
             <input

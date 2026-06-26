@@ -15,6 +15,8 @@ export interface AdminOrder {
   subtotal: number;
   deliveryFee: number;
   discount?: number;
+  tax?: number;
+  couponCode?: string;
   total: number;
   status: string;
   items: OrderLineItem[];
@@ -92,6 +94,8 @@ interface AdminStore {
   moveBanner: (id: string, direction: 'up' | 'down') => Promise<void>;
 
   updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  addCategory: (category: Category) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   updateBankDetails: (details: Partial<BankDetails>) => Promise<void>;
 }
 
@@ -174,6 +178,14 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
   updateCategory: async (id, updates) => {
     const category = await api<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify(updates) });
     set({ categories: get().categories.map((c) => (c.id === id ? category : c)) });
+  },
+  addCategory: async (category) => {
+    const created = await api<Category>('/api/categories', { method: 'POST', body: JSON.stringify(category) });
+    set({ categories: [...get().categories, created] });
+  },
+  deleteCategory: async (id) => {
+    await api(`/api/categories/${id}`, { method: 'DELETE' });
+    set({ categories: get().categories.filter((c) => c.id !== id) });
   },
   updateBankDetails: async (details) => {
     const bankDetails = await api<BankDetails>('/api/bank-details', { method: 'PATCH', body: JSON.stringify(details) });

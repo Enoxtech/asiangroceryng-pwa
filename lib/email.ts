@@ -2,30 +2,58 @@ import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
 import { decryptSecret } from '@/lib/crypto';
 
-async function getMailer(): Promise<{ transporter: nodemailer.Transporter; fromAddress: string } | null> {
-  const settings = await prisma.integrationSettings.findUnique({ where: { id: 'singleton' } });
-  const gmailUser = settings?.gmailUser || process.env.GMAIL_USER;
-  const gmailPass = (settings?.gmailAppPassword && decryptSecret(settings.gmailAppPassword)) || process.env.GMAIL_APP_PASSWORD;
-  if (!gmailUser || !gmailPass) return null;
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: gmailUser, pass: gmailPass },
-  });
-  return { transporter, fromAddress: gmailUser };
+interface Mailer {
+  send: (to: string, subject: string, html: string) => Promise<void>;
 }
 
-/** Sends an email if Gmail credentials are configured; silently no-ops otherwise. Never throws. */
+/**
+ * Resend is preferred when configured — Gmail SMTP from a personal-style
+ * address has a deliverability ceiling (spam folder) that no amount of code
+ * can fix. Gmail remains as a zero-setup fallback.
+ */
+async function getMailer(): Promise<Mailer | null> {
+  const settings = await prisma.integrationSettings.findUnique({ where: { id: 'singleton' } });
+
+  const resendApiKey = settings?.resendApiKey && decryptSecret(settings.resendApiKey);
+  const resendFrom = settings?.resendFromEmail;
+  if (resendApiKey && resendFrom) {
+    return {
+      send: async (to, subject, html) => {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: `Asian Grocery Nigeria <${resendFrom}>`, to, subject, html }),
+        });
+        if (!res.ok) {
+          throw new Error(`Resend API error ${res.status}: ${await res.text()}`);
+        }
+      },
+    };
+  }
+
+  const gmailUser = settings?.gmailUser || process.env.GMAIL_USER;
+  const gmailPass = (settings?.gmailAppPassword && decryptSecret(settings.gmailAppPassword)) || process.env.GMAIL_APP_PASSWORD;
+  if (gmailUser && gmailPass) {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: gmailUser, pass: gmailPass },
+    });
+    return {
+      send: async (to, subject, html) => {
+        await transporter.sendMail({ from: `"Asian Grocery Nigeria" <${gmailUser}>`, to, subject, html });
+      },
+    };
+  }
+
+  return null;
+}
+
+/** Sends an email if Resend or Gmail is configured; silently no-ops otherwise. Never throws. */
 export async function sendMail(to: string, subject: string, html: string): Promise<boolean> {
   try {
     const mailer = await getMailer();
     if (!mailer) return false;
-    await mailer.transporter.sendMail({
-      from: `"Asian Grocery Nigeria" <${mailer.fromAddress}>`,
-      to,
-      subject,
-      html,
-    });
+    await mailer.send(to, subject, html);
     return true;
   } catch (err) {
     console.error('[email] send failed', err);

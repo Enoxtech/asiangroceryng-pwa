@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
-import { deliveryAreas } from '@/data/products';
 import { Button } from '@/components/ui/Button';
 import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X, Truck, Store, MapPin, Clock, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -67,13 +66,19 @@ const PICKUP_STORE = {
   hours: 'Pick up time 12:00PM – 4:00PM Mon–Sat',
 };
 
-const PROMO_CODES: Record<string, { type: 'percent' | 'fixed' | 'shipping'; value: number; label: string; minOrder?: number }> = {
-  SHOPASIA:     { type: 'percent', value: 10, label: '10% off' },
-  ASIAN10:      { type: 'percent', value: 10, label: '10% off',      minOrder: 5000 },
-  NEWCUSTOMER:  { type: 'percent', value: 15, label: '15% off',      minOrder: 3000 },
-  WELCOME20:    { type: 'percent', value: 20, label: '20% off',      minOrder: 10000 },
-  FREESHIP:     { type: 'shipping', value: 0, label: 'Free delivery' },
-};
+interface DeliveryArea {
+  id: string;
+  name: string;
+  fee: number;
+  estimatedDays: string;
+}
+
+interface AppliedCoupon {
+  code: string;
+  type: 'percent' | 'fixed' | 'shipping';
+  value: number;
+  minOrder?: number | null;
+}
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCartStore();
@@ -85,27 +90,43 @@ export default function CheckoutPage() {
   const subtotal = totalPrice();
   const [step, setStep] = useState<'details' | 'payment'>('details');
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('ship');
-  const [selectedArea, setSelectedArea] = useState(deliveryAreas[0]);
+  const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
+  const [selectedAreaId, setSelectedAreaId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pay_on_delivery');
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '', email: '', phone: '', address: '', city: '', notes: '',
   });
   const [couponInput, setCouponInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<typeof PROMO_CODES[string] & { code: string } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState('');
   const [showAccountPassword, setShowAccountPassword] = useState(false);
   const [accountError, setAccountError] = useState('');
   const [paystack, setPaystack] = useState<{ publicKey: string; enabled: boolean }>({ publicKey: '', enabled: false });
+  const [vatPercent, setVatPercent] = useState(0);
   const [paymentError, setPaymentError] = useState('');
+
+  const selectedArea = deliveryAreas.find((a) => a.id === selectedAreaId) ?? deliveryAreas[0];
 
   useEffect(() => { hydrateAuth(); }, [hydrateAuth]);
   useEffect(() => {
     fetch('/api/settings/public')
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setPaystack({ publicKey: data.paystackPublicKey, enabled: data.paystackEnabled }); })
+      .then((data) => {
+        if (!data) return;
+        setPaystack({ publicKey: data.paystackPublicKey, enabled: data.paystackEnabled });
+        setVatPercent(data.vatPercent || 0);
+      })
+      .catch(() => {});
+    fetch('/api/delivery-areas')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((areas: DeliveryArea[]) => {
+        setDeliveryAreas(areas);
+        if (areas.length > 0) setSelectedAreaId(areas[0].id);
+      })
       .catch(() => {});
   }, []);
   useEffect(() => {
@@ -114,29 +135,42 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  function applyCoupon() {
+  async function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
-    const promo = PROMO_CODES[code];
-    if (!promo) { setCouponError('Invalid promo code'); return; }
-    if (promo.minOrder && subtotal < promo.minOrder) {
-      setCouponError(`Minimum order of ${formatPrice(promo.minOrder)} required`);
-      return;
-    }
-    setAppliedCoupon({ ...promo, code });
+    if (!code) return;
+    setCouponLoading(true);
     setCouponError('');
-    setCouponInput('');
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setCouponError(json.error || 'Invalid promo code');
+        return;
+      }
+      setAppliedCoupon(json);
+      setCouponInput('');
+    } catch {
+      setCouponError('Could not check promo code. Try again.');
+    } finally {
+      setCouponLoading(false);
+    }
   }
 
   function removeCoupon() { setAppliedCoupon(null); setCouponError(''); }
 
   const discount = appliedCoupon
     ? appliedCoupon.type === 'percent' ? Math.round(subtotal * appliedCoupon.value / 100)
-    : appliedCoupon.type === 'shipping' ? selectedArea.fee
+    : appliedCoupon.type === 'shipping' ? (selectedArea?.fee ?? 0)
     : appliedCoupon.value
     : 0;
 
-  const deliveryFee = deliveryMethod === 'pickup' ? 0 : (appliedCoupon?.type === 'shipping' ? 0 : selectedArea.fee);
-  const total = subtotal + deliveryFee - (appliedCoupon?.type !== 'shipping' ? discount : 0);
+  const deliveryFee = deliveryMethod === 'pickup' ? 0 : (appliedCoupon?.type === 'shipping' ? 0 : (selectedArea?.fee ?? 0));
+  const tax = Math.round(subtotal * vatPercent / 100);
+  const total = subtotal + deliveryFee + tax - (appliedCoupon?.type !== 'shipping' ? discount : 0);
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -157,8 +191,9 @@ export default function CheckoutPage() {
       subtotal,
       deliveryFee,
       discount: discount > 0 ? discount : undefined,
+      tax: tax > 0 ? tax : undefined,
       total,
-      area: deliveryMethod === 'pickup' ? 'Store Pickup' : selectedArea.name,
+      area: deliveryMethod === 'pickup' ? 'Store Pickup' : (selectedArea?.name ?? ''),
       address: deliveryMethod === 'pickup' ? 'Store F11, Ikeja Town-Square' : form.address,
       paymentMethod,
       notes: form.notes,
@@ -198,6 +233,8 @@ export default function CheckoutPage() {
         subtotal: orderDetails.subtotal,
         deliveryFee: orderDetails.deliveryFee,
         discount: orderDetails.discount,
+        tax: orderDetails.tax,
+        couponCode: appliedCoupon?.code,
         total,
         status: 'pending',
         items: orderDetails.items,
@@ -464,17 +501,21 @@ export default function CheckoutPage() {
             /* Ship: delivery area selector */
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Area *</label>
-              <select
-                value={selectedArea.id}
-                onChange={(e) => setSelectedArea(deliveryAreas.find((a) => a.id === e.target.value) ?? deliveryAreas[0])}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
-              >
-                {deliveryAreas.map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.name} — {formatPrice(area.fee)} · {area.estimatedDays}
-                  </option>
-                ))}
-              </select>
+              {deliveryAreas.length === 0 ? (
+                <p className="text-sm text-gray-400 px-1">Loading delivery areas…</p>
+              ) : (
+                <select
+                  value={selectedAreaId}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-red bg-white"
+                >
+                  {deliveryAreas.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name} — {formatPrice(area.fee)} · {area.estimatedDays}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
           <div>
@@ -488,7 +529,9 @@ export default function CheckoutPage() {
             {appliedCoupon ? (
               <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm">
                 <Check className="h-4 w-4 text-green-600 shrink-0" />
-                <span className="font-semibold text-green-800 flex-1">{appliedCoupon.code} — {appliedCoupon.label} applied!</span>
+                <span className="font-semibold text-green-800 flex-1">
+                  {appliedCoupon.code} — {appliedCoupon.type === 'percent' ? `${appliedCoupon.value}% off` : appliedCoupon.type === 'shipping' ? 'Free delivery' : `₦${appliedCoupon.value.toLocaleString()} off`} applied!
+                </span>
                 <button type="button" onClick={removeCoupon} className="text-gray-400 hover:text-gray-600">
                   <X className="h-4 w-4" />
                 </button>
@@ -508,9 +551,10 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={applyCoupon}
-                  className="px-4 py-3 bg-brand-red text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors whitespace-nowrap"
+                  disabled={couponLoading}
+                  className="px-4 py-3 bg-brand-red text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors whitespace-nowrap disabled:opacity-60"
                 >
-                  Apply
+                  {couponLoading ? 'Checking…' : 'Apply'}
                 </button>
               </div>
             )}
@@ -521,11 +565,17 @@ export default function CheckoutPage() {
           <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
             <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
             <div className="flex justify-between text-gray-600">
-              <span>Delivery ({deliveryMethod === 'pickup' ? 'Pickup' : selectedArea.name})</span>
+              <span>Delivery ({deliveryMethod === 'pickup' ? 'Pickup' : (selectedArea?.name ?? '—')})</span>
               {deliveryFee === 0
                 ? <span className="text-green-600 font-semibold">FREE</span>
                 : <span>{formatPrice(deliveryFee)}</span>}
             </div>
+            {tax > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>VAT ({vatPercent}%)</span>
+                <span>{formatPrice(tax)}</span>
+              </div>
+            )}
             {appliedCoupon && appliedCoupon.type !== 'shipping' && discount > 0 && (
               <div className="flex justify-between text-green-600 font-semibold">
                 <span>Discount ({appliedCoupon.code})</span>
@@ -601,6 +651,12 @@ export default function CheckoutPage() {
               </div>
             ))}
             {items.length > 3 && <p className="text-xs text-gray-400">+{items.length - 3} more items</p>}
+            {tax > 0 && (
+              <div className="flex justify-between text-gray-600 text-xs pt-1 border-t">
+                <span>VAT ({vatPercent}%)</span>
+                <span>{formatPrice(tax)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-bold text-gray-900 border-t pt-2"><span>Total</span><span className="text-brand-red">{formatPrice(total)}</span></div>
           </div>
 

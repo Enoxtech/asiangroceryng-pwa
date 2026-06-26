@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, ShoppingBag, Users,
-  Settings, LogOut, ChevronRight, Store, ImageIcon, LayoutGrid, ShieldCheck, ScrollText,
+  Settings, LogOut, ChevronRight, Store, ImageIcon, LayoutGrid, ShieldCheck, ScrollText, Truck, Tag,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdminAuthStore, type AdminRole } from '@/store/adminAuthStore';
@@ -17,6 +17,8 @@ const navItems: { href: string; label: string; Icon: React.ElementType; exact?: 
   { href: '/admin/orders', label: 'Orders', Icon: ShoppingBag, roles: ['super_admin', 'support', 'product_manager'] },
   { href: '/admin/banners', label: 'Banners', Icon: ImageIcon, roles: ['super_admin', 'product_manager'] },
   { href: '/admin/categories', label: 'Categories', Icon: LayoutGrid, roles: ['super_admin', 'support', 'product_manager'] },
+  { href: '/admin/delivery-areas', label: 'Delivery Areas', Icon: Truck, roles: ['super_admin', 'product_manager'] },
+  { href: '/admin/coupons', label: 'Coupons', Icon: Tag, roles: ['super_admin', 'product_manager'] },
   { href: '/admin/customers', label: 'Customers', Icon: Users, roles: ['super_admin', 'support'] },
   { href: '/admin/settings', label: 'Settings', Icon: Settings, roles: ['super_admin'] },
   { href: '/admin/team', label: 'Admin Team', Icon: ShieldCheck, roles: ['super_admin'] },

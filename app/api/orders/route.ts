@@ -60,6 +60,8 @@ export async function POST(req: NextRequest) {
       subtotal: body.subtotal,
       deliveryFee: body.deliveryFee,
       discount: body.discount ?? 0,
+      tax: body.tax ?? 0,
+      couponCode: body.couponCode || undefined,
       total: body.total,
       status,
       paymentRef,
@@ -78,5 +80,13 @@ export async function POST(req: NextRequest) {
     },
     include: { items: true },
   });
+
+  if (body.couponCode) {
+    await prisma.coupon.updateMany({
+      where: { code: body.couponCode },
+      data: { usageCount: { increment: 1 } },
+    });
+  }
+
   return NextResponse.json(order, { status: 201 });
 }

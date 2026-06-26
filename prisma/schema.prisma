@@ -63,6 +63,8 @@ model Order {
   subtotal      Float
   deliveryFee   Float
   discount      Float       @default(0)
+  tax           Float       @default(0)
+  couponCode    String?
   total         Float
   status        String      @default("pending")
   area          String
@@ -161,6 +163,36 @@ model IntegrationSettings {
   gmailUser            String @default("")
   gmailAppPassword     String @default("")
   adminEmail           String @default("")
+  resendApiKey         String @default("")
+  resendFromEmail      String @default("")
+  vatPercent           Float  @default(0)
+  whatsappPhoneNumberId      String @default("")
+  whatsappAccessToken        String @default("")
+  whatsappBusinessAccountId  String @default("")
+  whatsappOrderTemplateName  String @default("")
+  whatsappTemplateLanguage   String @default("en_US")
+}
+
+model DeliveryArea {
+  id            String  @id @default(cuid())
+  name          String
+  fee           Float
+  estimatedDays String
+  enabled       Boolean @default(true)
+  position      Int     @default(0)
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  type        String
+  value       Float
+  minOrder    Float?
+  active      Boolean   @default(true)
+  expiresAt   DateTime?
+  usageLimit  Int?
+  usageCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
 }
 
 model AuditLog {

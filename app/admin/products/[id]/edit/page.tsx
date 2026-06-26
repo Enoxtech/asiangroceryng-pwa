@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Save, Check } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 import { Product } from '@/types';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -106,29 +107,7 @@ export default function EditProductPage() {
       {/* Images */}
       <div className={card} style={cardStyle}>
         <h2 className="font-bold text-gray-200 text-sm font-display">Product Images</h2>
-        {(form.images ?? []).map((url, i) => (
-          <div key={i} className="flex gap-2 items-center">
-            <label className="text-[10px] font-label text-gray-500 w-8 shrink-0">#{i + 1}</label>
-            <input
-              value={url}
-              onChange={(e) => {
-                const imgs = [...(form.images ?? [])];
-                imgs[i] = e.target.value;
-                set('images', imgs);
-              }}
-              className={`${fieldCls} flex-1`}
-              placeholder="https://images.unsplash.com/..."
-            />
-            {i > 0 && (
-              <button onClick={() => set('images', (form.images ?? []).filter((_, j) => j !== i))}
-                className="text-gray-500 hover:text-red-400 text-xs font-label cursor-pointer px-2 py-1 rounded">✕</button>
-            )}
-          </div>
-        ))}
-        <button onClick={() => set('images', [...(form.images ?? []), ''])}
-          className="text-xs text-brand-red hover:opacity-75 font-label font-semibold cursor-pointer">
-          + Add Image URL
-        </button>
+        <ImageUploader images={form.images ?? []} onChange={(images) => set('images', images)} />
       </div>
 
       {/* Pricing & Stock */}

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
-import { decryptSecret } from '@/lib/crypto';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
+import { sendMail } from '@/lib/email';
+import { sendWhatsAppOrderUpdate } from '@/lib/whatsappApi';
 
 export interface OrderEmailPayload {
   orderId: string;
@@ -14,6 +14,7 @@ export interface OrderEmailPayload {
   subtotal: number;
   deliveryFee: number;
   discount?: number;
+  tax?: number;
   total: number;
   area: string;
   address?: string;
@@ -182,6 +183,10 @@ function buildEmailHtml(o: OrderEmailPayload): string {
                 <td style="padding:5px 0;font-size:13px;color:#9d8f7e;">Delivery Fee</td>
                 <td style="padding:5px 0;font-size:13px;color:#2d2a24;text-align:right;">${o.deliveryFee > 0 ? formatNaira(o.deliveryFee) : 'FREE'}</td>
               </tr>
+              ${o.tax && o.tax > 0 ? `<tr>
+                <td style="padding:5px 0;font-size:13px;color:#9d8f7e;">VAT</td>
+                <td style="padding:5px 0;font-size:13px;color:#2d2a24;text-align:right;">${formatNaira(o.tax)}</td>
+              </tr>` : ''}
               ${o.discount && o.discount > 0 ? `<tr>
                 <td style="padding:5px 0;font-size:13px;color:#2e7d52;">Discount Applied</td>
                 <td style="padding:5px 0;font-size:13px;color:#2e7d52;text-align:right;">−${formatNaira(o.discount)}</td>
@@ -342,6 +347,10 @@ function buildCustomerEmailHtml(o: OrderEmailPayload): string {
                 <td style="padding:5px 0;font-size:13px;color:#9d8f7e;">Delivery Fee</td>
                 <td style="padding:5px 0;font-size:13px;color:#2d2a24;text-align:right;">${o.deliveryFee > 0 ? formatNaira(o.deliveryFee) : 'FREE'}</td>
               </tr>
+              ${o.tax && o.tax > 0 ? `<tr>
+                <td style="padding:5px 0;font-size:13px;color:#9d8f7e;">VAT</td>
+                <td style="padding:5px 0;font-size:13px;color:#2d2a24;text-align:right;">${formatNaira(o.tax)}</td>
+              </tr>` : ''}
               ${o.discount && o.discount > 0 ? `<tr>
                 <td style="padding:5px 0;font-size:13px;color:#2e7d52;">Discount Applied</td>
                 <td style="padding:5px 0;font-size:13px;color:#2e7d52;text-align:right;">−${formatNaira(o.discount)}</td>
@@ -411,50 +420,44 @@ export async function POST(req: NextRequest) {
     const safeOrder = sanitizeOrder(order);
 
     const settings = await prisma.integrationSettings.findUnique({ where: { id: 'singleton' } });
-    const gmailUser = settings?.gmailUser || process.env.GMAIL_USER;
-    const gmailPass = (settings?.gmailAppPassword && decryptSecret(settings.gmailAppPassword)) || process.env.GMAIL_APP_PASSWORD;
     const adminEmail = settings?.adminEmail || process.env.ADMIN_EMAIL;
 
-    // If email credentials aren't configured, skip silently (don't block order)
-    if (!gmailUser || !gmailPass) {
-      return NextResponse.json({ ok: true, skipped: true, reason: 'Email not configured' });
-    }
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: gmailUser, pass: gmailPass },
-    });
-
     const sourceLabel = order.source === 'whatsapp' ? 'WhatsApp Order' : 'New Order';
-    const sends: Promise<unknown>[] = [];
+    const sends: Promise<boolean>[] = [];
 
     if (adminEmail) {
-      sends.push(
-        transporter.sendMail({
-          from: `"Asian Grocery Nigeria" <${gmailUser}>`,
-          to: adminEmail,
-          subject: `🛒 ${sourceLabel} ${safeOrder.orderId} — ${formatNaira(order.total)} · ${safeOrder.customer}`,
-          html: buildEmailHtml(safeOrder),
-        })
-      );
+      sends.push(sendMail(
+        adminEmail,
+        `🛒 ${sourceLabel} ${safeOrder.orderId} — ${formatNaira(order.total)} · ${safeOrder.customer}`,
+        buildEmailHtml(safeOrder)
+      ));
     }
 
     if (order.email) {
-      sends.push(
-        transporter.sendMail({
-          from: `"Asian Grocery Nigeria" <${gmailUser}>`,
-          to: order.email,
-          subject: `✅ Order Confirmed — ${safeOrder.orderId} | Asian Grocery Nigeria`,
-          html: buildCustomerEmailHtml(safeOrder),
-        })
-      );
+      sends.push(sendMail(
+        order.email,
+        `✅ Order Confirmed — ${safeOrder.orderId} | Asian Grocery Nigeria`,
+        buildCustomerEmailHtml(safeOrder)
+      ));
     }
 
-    const results = await Promise.allSettled(sends);
-    const failed = results.filter((r) => r.status === 'rejected');
-    if (failed.length) console.error('[notify-order] some emails failed', failed);
+    // WhatsApp order update (Meta Cloud API) — separate channel from email,
+    // tracked independently since it silently no-ops if not configured.
+    const whatsappSent = order.phone
+      ? await sendWhatsAppOrderUpdate(order.phone, [safeOrder.customer, safeOrder.orderId, formatNaira(order.total), safeOrder.area])
+      : false;
 
-    return NextResponse.json({ ok: true, sent: results.length - failed.length, failed: failed.length });
+    if (sends.length === 0) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'No email recipients', whatsappSent });
+    }
+
+    const results = await Promise.all(sends);
+    const sent = results.filter(Boolean).length;
+    if (sent === 0) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'Email not configured', whatsappSent });
+    }
+
+    return NextResponse.json({ ok: true, sent, failed: results.length - sent, whatsappSent });
   } catch (err) {
     console.error('[notify-order]', err);
     // Return 200 so client doesn't retry — email failure must not block order flow

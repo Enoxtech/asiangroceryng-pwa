@@ -9,6 +9,7 @@ export interface OrderDetails {
   subtotal: number;
   deliveryFee: number;
   discount?: number;
+  tax?: number;
   total: number;
   area: string;
   address?: string;
@@ -35,6 +36,7 @@ export function buildCustomerConfirmation(order: OrderDetails): string {
     `*Items Ordered:*\n${lines}\n\n` +
     `Subtotal: ₦${order.subtotal.toLocaleString()}\n` +
     `Delivery (${order.area}): ₦${order.deliveryFee.toLocaleString()}\n` +
+    (order.tax ? `VAT: ₦${order.tax.toLocaleString()}\n` : '') +
     (order.discount ? `Discount: −₦${order.discount.toLocaleString()}\n` : '') +
     `*Total: ₦${order.total.toLocaleString()}*\n\n` +
     `Payment: ${payLabel[order.paymentMethod] ?? order.paymentMethod}\n` +
