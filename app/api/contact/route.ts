@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
-import { sendMail, wrapEmail } from '@/lib/email';
+import { sendMail, wrapEmail, HELLO_FROM } from '@/lib/email';
 
 function escapeHtml(value: string): string {
   return value
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     <p style="margin:0;padding:14px 16px;border-radius:12px;background:#faf8f5;font-size:14px;color:#2d2a24;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message)}</p>
   `);
 
-  const sent = await sendMail(adminEmail, `📩 Contact form: ${subject || 'New message'} — ${name}`, html);
+  const sent = await sendMail(adminEmail, `📩 Contact form: ${subject || 'New message'} — ${name}`, html, HELLO_FROM);
 
   if (!sent) {
     return NextResponse.json({ error: 'Could not send your message right now. Please reach us on WhatsApp instead.' }, { status: 502 });

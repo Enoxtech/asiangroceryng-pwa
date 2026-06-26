@@ -2,8 +2,14 @@ import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
 import { decryptSecret } from '@/lib/crypto';
 
+// Purpose-specific sender addresses on the verified domain — Resend verifies
+// the whole domain, so any of these work without extra DNS setup.
+export const ORDERS_FROM = 'orders@asiangroceryng.com';
+export const NOREPLY_FROM = 'noreply@asiangroceryng.com';
+export const HELLO_FROM = 'hello@asiangroceryng.com';
+
 interface Mailer {
-  send: (to: string, subject: string, html: string) => Promise<void>;
+  send: (to: string, subject: string, html: string, fromOverride?: string) => Promise<void>;
 }
 
 /**
@@ -18,11 +24,14 @@ async function getMailer(): Promise<Mailer | null> {
   const resendFrom = settings?.resendFromEmail;
   if (resendApiKey && resendFrom) {
     return {
-      send: async (to, subject, html) => {
+      // fromOverride lets callers use a purpose-specific address (orders@,
+      // noreply@, hello@, ...) on the same verified domain — Resend verifies
+      // the whole domain, not a single mailbox, so any address on it works.
+      send: async (to, subject, html, fromOverride) => {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: `Asian Grocery Nigeria <${resendFrom}>`, to, subject, html }),
+          body: JSON.stringify({ from: `Asian Grocery Nigeria <${fromOverride || resendFrom}>`, to, subject, html }),
         });
         if (!res.ok) {
           throw new Error(`Resend API error ${res.status}: ${await res.text()}`);
@@ -39,6 +48,8 @@ async function getMailer(): Promise<Mailer | null> {
       auth: { user: gmailUser, pass: gmailPass },
     });
     return {
+      // Gmail SMTP can't send as an arbitrary address — fromOverride is
+      // ignored here and the authenticated Gmail account is always used.
       send: async (to, subject, html) => {
         await transporter.sendMail({ from: `"Asian Grocery Nigeria" <${gmailUser}>`, to, subject, html });
       },
@@ -48,12 +59,13 @@ async function getMailer(): Promise<Mailer | null> {
   return null;
 }
 
-/** Sends an email if Resend or Gmail is configured; silently no-ops otherwise. Never throws. */
-export async function sendMail(to: string, subject: string, html: string): Promise<boolean> {
+/** Sends an email if Resend or Gmail is configured; silently no-ops otherwise. Never throws.
+ *  `fromOverride` (e.g. 'orders@asiangroceryng.com') only takes effect when sending via Resend. */
+export async function sendMail(to: string, subject: string, html: string, fromOverride?: string): Promise<boolean> {
   try {
     const mailer = await getMailer();
     if (!mailer) return false;
-    await mailer.send(to, subject, html);
+    await mailer.send(to, subject, html, fromOverride);
     return true;
   } catch (err) {
     console.error('[email] send failed', err);

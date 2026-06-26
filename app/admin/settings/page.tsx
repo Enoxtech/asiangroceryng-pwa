@@ -585,15 +585,19 @@ export default function AdminSettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">From Address (must be on a verified domain)</label>
+              <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Fallback From Address</label>
               <input
                 type="email"
                 value={email.resendFromEmail}
                 onChange={(e) => setEmail((s) => ({ ...s, resendFromEmail: e.target.value }))}
-                placeholder="orders@asiangroceryng.com"
+                placeholder="hello@asiangroceryng.com"
                 className={inputCls}
                 style={inputStyle}
               />
+              <p className="text-[10px] text-gray-600 font-label mt-1.5 leading-relaxed">
+                Must be on a verified domain. Order emails, verification/reset emails, and contact-form notifications
+                already use their own addresses (orders@, noreply@, hello@) — this is only the fallback for anything else.
+              </p>
             </div>
           </div>
 

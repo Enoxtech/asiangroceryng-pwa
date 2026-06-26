@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
-import { sendMail, buildResetPasswordEmailHtml } from '@/lib/email';
+import { sendMail, buildResetPasswordEmailHtml, NOREPLY_FROM } from '@/lib/email';
 
 const RESET_TTL_MS = 60 * 60 * 1000;
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     });
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://asiangroceryng-pwa.vercel.app';
     const link = `${appUrl}/reset-password?token=${resetToken}`;
-    await sendMail(email, 'Reset your password — Asian Grocery Nigeria', buildResetPasswordEmailHtml(user.name, link));
+    await sendMail(email, 'Reset your password — Asian Grocery Nigeria', buildResetPasswordEmailHtml(user.name, link), NOREPLY_FROM);
   }
 
   return NextResponse.json({ ok: true });

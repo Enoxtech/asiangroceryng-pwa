@@ -5,7 +5,7 @@ import { hashPassword, validatePasswordStrength } from '@/lib/auth';
 import { setCustomerSessionCookie } from '@/lib/customerAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
-import { sendMail, buildVerifyEmailHtml } from '@/lib/email';
+import { sendMail, buildVerifyEmailHtml, NOREPLY_FROM } from '@/lib/email';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://asiangroceryng-pwa.vercel.app';
   const link = `${appUrl}/verify-email?token=${verifyToken}`;
-  await sendMail(email, 'Verify your email — Asian Grocery Nigeria', buildVerifyEmailHtml(name, link));
+  await sendMail(email, 'Verify your email — Asian Grocery Nigeria', buildVerifyEmailHtml(name, link), NOREPLY_FROM);
 
   const res = NextResponse.json({
     id: customer.id,

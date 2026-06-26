@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
-import { sendMail, buildVerifyEmailHtml } from '@/lib/email';
+import { sendMail, buildVerifyEmailHtml, NOREPLY_FROM } from '@/lib/email';
 
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://asiangroceryng-pwa.vercel.app';
   const link = `${appUrl}/verify-email?token=${verifyToken}`;
-  await sendMail(session.email, 'Verify your email — Asian Grocery Nigeria', buildVerifyEmailHtml(session.name, link));
+  await sendMail(session.email, 'Verify your email — Asian Grocery Nigeria', buildVerifyEmailHtml(session.name, link), NOREPLY_FROM);
 
   return NextResponse.json({ ok: true });
 }

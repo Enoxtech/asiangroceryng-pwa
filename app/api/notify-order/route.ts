@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
-import { sendMail } from '@/lib/email';
+import { sendMail, ORDERS_FROM } from '@/lib/email';
 import { sendWhatsAppOrderUpdate } from '@/lib/whatsappApi';
 
 export interface OrderEmailPayload {
@@ -429,7 +429,8 @@ export async function POST(req: NextRequest) {
       sends.push(sendMail(
         adminEmail,
         `🛒 ${sourceLabel} ${safeOrder.orderId} — ${formatNaira(order.total)} · ${safeOrder.customer}`,
-        buildEmailHtml(safeOrder)
+        buildEmailHtml(safeOrder),
+        ORDERS_FROM
       ));
     }
 
@@ -437,7 +438,8 @@ export async function POST(req: NextRequest) {
       sends.push(sendMail(
         order.email,
         `✅ Order Confirmed — ${safeOrder.orderId} | Asian Grocery Nigeria`,
-        buildCustomerEmailHtml(safeOrder)
+        buildCustomerEmailHtml(safeOrder),
+        ORDERS_FROM
       ));
     }
 
