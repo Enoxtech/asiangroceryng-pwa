@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { MessageCircle, CreditCard, Building2, Banknote, Tag, Check, X, Truck, Store, MapPin, Clock, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { CreditCard, Building2, Tag, Check, X, Truck, Store, MapPin, Clock, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildCustomerConfirmation, openWhatsApp, ADMIN_WHATSAPP, buildAdminAlert } from '@/lib/whatsapp';
 import { useUserNotificationStore } from '@/store/userNotificationStore';
@@ -14,7 +14,7 @@ import { useAdminStore } from '@/store/adminStore';
 import { useAuthStore } from '@/store/authStore';
 import type { OrderEmailPayload } from '@/app/api/notify-order/route';
 
-type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
+type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer';
 type DeliveryMethod = 'ship' | 'pickup';
 
 interface PaystackHandler {
@@ -44,7 +44,7 @@ function loadPaystackScript(): Promise<void> {
   paystackScriptPromise = new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       paystackScriptPromise = null;
-      reject(new Error('Could not connect to Paystack — your network may be blocking it. Try a different connection, or use Bank Transfer / Pay on Delivery instead.'));
+      reject(new Error('Could not connect to Paystack — your network may be blocking it. Try a different connection, or use Bank Transfer instead.'));
     }, 12000);
 
     const script = document.createElement('script');
@@ -92,7 +92,7 @@ export default function CheckoutPage() {
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('ship');
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pay_on_delivery');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank_transfer');
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '', email: '', phone: '', address: '', city: '', notes: '',
@@ -340,36 +340,6 @@ export default function CheckoutPage() {
     handler.openIframe();
   }
 
-  function handleWhatsAppOrder() {
-    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
-    const orderDetails = buildOrderDetails(orderId);
-    const message = buildCustomerConfirmation(orderDetails);
-
-    // 1. Admin email (fire-and-forget)
-    sendAdminEmail({ ...orderDetails, orderId: orderDetails.id, source: 'whatsapp' });
-
-    // 2. Admin WhatsApp alert
-    const adminMsg = buildAdminAlert(orderDetails);
-    openWhatsApp(ADMIN_WHATSAPP, adminMsg);
-
-    // 3. Customer WhatsApp confirmation
-    window.open(`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent(message)}`, '_blank');
-
-    // 4. In-app notifications
-    addUserNotif({
-      type: 'order',
-      title: `Order ${orderId} via WhatsApp`,
-      body: `Your WhatsApp order for ₦${total.toLocaleString()} has been sent. We'll confirm shortly.`,
-      link: '/orders',
-    });
-    addAdminNotif({
-      type: 'order',
-      title: 'New WhatsApp Order',
-      message: `WhatsApp order ${orderId} from ${form.name || 'Customer'} — ₦${total.toLocaleString()}`,
-      actionUrl: '/admin/orders',
-    });
-  }
-
   if (items.length === 0) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -594,7 +564,6 @@ export default function CheckoutPage() {
           {[
             { id: 'paystack', label: 'Paystack', desc: 'Debit/credit card, bank transfer, USSD', icon: <CreditCard className="h-5 w-5" />, badge: paystack.enabled ? null : 'Coming soon' },
             { id: 'bank_transfer', label: 'Bank Transfer', desc: 'Transfer to our account details', icon: <Building2 className="h-5 w-5" />, badge: null },
-            { id: 'pay_on_delivery', label: 'Pay on Delivery', desc: 'Cash on delivery (Lagos only)', icon: <Banknote className="h-5 w-5" />, badge: null },
           ].map(({ id, label, desc, icon, badge }) => (
             <label
               key={id}
@@ -664,9 +633,6 @@ export default function CheckoutPage() {
             <Button type="submit" size="lg" loading={loading} className="w-full" disabled={paymentMethod === 'paystack' && !paystack.enabled}>
               {paymentMethod === 'paystack' && !paystack.enabled ? 'Coming Soon' : paymentMethod === 'paystack' ? `Pay with Paystack · ${formatPrice(total)}` : `Place Order · ${formatPrice(total)}`}
             </Button>
-            <button type="button" onClick={handleWhatsAppOrder} className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors">
-              <MessageCircle className="h-5 w-5" /> Order via WhatsApp
-            </button>
             <button type="button" onClick={() => setStep('details')} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
               ← Back to details
             </button>

@@ -21,17 +21,17 @@ async function getMailer(): Promise<Mailer | null> {
   const settings = await prisma.integrationSettings.findUnique({ where: { id: 'singleton' } });
 
   const resendApiKey = settings?.resendApiKey && decryptSecret(settings.resendApiKey);
-  const resendFrom = settings?.resendFromEmail;
-  if (resendApiKey && resendFrom) {
+  if (resendApiKey) {
+    // Every current caller passes its own purpose-specific fromOverride
+    // (orders@, noreply@, hello@), so the configured "fallback" address is
+    // only needed if some future caller doesn't — never gate Resend on it.
+    const fallbackFrom = settings?.resendFromEmail || HELLO_FROM;
     return {
-      // fromOverride lets callers use a purpose-specific address (orders@,
-      // noreply@, hello@, ...) on the same verified domain — Resend verifies
-      // the whole domain, not a single mailbox, so any address on it works.
       send: async (to, subject, html, fromOverride) => {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: `Asian Grocery Nigeria <${fromOverride || resendFrom}>`, to, subject, html }),
+          body: JSON.stringify({ from: `Asian Grocery Nigeria <${fromOverride || fallbackFrom}>`, to, subject, html }),
         });
         if (!res.ok) {
           throw new Error(`Resend API error ${res.status}: ${await res.text()}`);
