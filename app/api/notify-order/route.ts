@@ -93,7 +93,7 @@ function buildEmailHtml(o: OrderEmailPayload): string {
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.65);">
               ${o.source === 'whatsapp' ? 'WhatsApp Order' : 'New Online Order'}
             </p>
-            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">Asian Grocery NG</h1>
+            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">Asian Grocery Nigeria</h1>
             <p style="margin:8px 0 0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:1px;">${o.orderId}</p>
           </td>
         </tr>
@@ -207,7 +207,7 @@ function buildEmailHtml(o: OrderEmailPayload): string {
         <!-- WhatsApp quick reply -->
         <tr>
           <td style="padding:0 32px 28px;text-align:center;">
-            <a href="https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || ''}?text=${encodeURIComponent(`Hi ${o.customer}, your order ${o.orderId} from Asian Grocery NG has been confirmed! We'll process it shortly.`)}"
+            <a href="https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || ''}?text=${encodeURIComponent(`Hi ${o.customer}, your order ${o.orderId} from Asian Grocery Nigeria has been confirmed! We'll process it shortly.`)}"
                style="display:inline-block;padding:12px 28px;border-radius:50px;background:#25d366;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;">
               📲 &nbsp;WhatsApp Customer
             </a>
@@ -217,7 +217,7 @@ function buildEmailHtml(o: OrderEmailPayload): string {
         <!-- Footer -->
         <tr>
           <td style="background:#faf8f5;padding:18px 32px;text-align:center;border-top:1px solid #f0ece4;">
-            <p style="margin:0;font-size:12px;color:#b0a898;">Asian Grocery NG &nbsp;·&nbsp; Store F11, Ikeja Town-Square, Lagos</p>
+            <p style="margin:0;font-size:12px;color:#b0a898;">Asian Grocery Nigeria &nbsp;·&nbsp; Store F11, Ikeja Town-Square, Lagos</p>
             <p style="margin:6px 0 0;font-size:11px;color:#c9bfb4;">This email was automatically generated when an order was placed.</p>
           </td>
         </tr>
@@ -261,7 +261,7 @@ function buildCustomerEmailHtml(o: OrderEmailPayload): string {
         <tr>
           <td style="background:#c41e3a;padding:32px 32px;text-align:center;">
             <p style="margin:0 0 4px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.65);">Order Confirmed</p>
-            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">Asian Grocery NG</h1>
+            <h1 style="margin:0;font-size:24px;font-weight:800;color:#ffffff;">Asian Grocery Nigeria</h1>
             <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,0.9);">Thank you, ${o.customer}! 🎉</p>
           </td>
         </tr>
@@ -387,7 +387,7 @@ function buildCustomerEmailHtml(o: OrderEmailPayload): string {
         <!-- Footer -->
         <tr>
           <td style="background:#faf8f5;padding:18px 32px;text-align:center;border-top:1px solid #f0ece4;">
-            <p style="margin:0;font-size:12px;color:#b0a898;">Asian Grocery NG &nbsp;·&nbsp; Store F11, Ikeja Town-Square, Lagos</p>
+            <p style="margin:0;font-size:12px;color:#b0a898;">Asian Grocery Nigeria &nbsp;·&nbsp; Store F11, Ikeja Town-Square, Lagos</p>
             <p style="margin:6px 0 0;font-size:11px;color:#c9bfb4;">Thank you for shopping with us!</p>
           </td>
         </tr>
@@ -431,7 +431,7 @@ export async function POST(req: NextRequest) {
     if (adminEmail) {
       sends.push(
         transporter.sendMail({
-          from: `"Asian Grocery NG" <${gmailUser}>`,
+          from: `"Asian Grocery Nigeria" <${gmailUser}>`,
           to: adminEmail,
           subject: `🛒 ${sourceLabel} ${safeOrder.orderId} — ${formatNaira(order.total)} · ${safeOrder.customer}`,
           html: buildEmailHtml(safeOrder),
@@ -442,9 +442,9 @@ export async function POST(req: NextRequest) {
     if (order.email) {
       sends.push(
         transporter.sendMail({
-          from: `"Asian Grocery NG" <${gmailUser}>`,
+          from: `"Asian Grocery Nigeria" <${gmailUser}>`,
           to: order.email,
-          subject: `✅ Order Confirmed — ${safeOrder.orderId} | Asian Grocery NG`,
+          subject: `✅ Order Confirmed — ${safeOrder.orderId} | Asian Grocery Nigeria`,
           html: buildCustomerEmailHtml(safeOrder),
         })
       );

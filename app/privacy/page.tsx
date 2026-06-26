@@ -23,7 +23,7 @@ const sections = [
     body: [
       'We do not sell or rent your personal information to third parties.',
       'We share only what is necessary with trusted service providers who help us operate the store — for example, payment processors (Paystack, Flutterwave) for card transactions, and delivery partners for order fulfilment.',
-      'We may disclose information if required by law or to protect the rights, property, or safety of Asian Grocery NG, our customers, or others.',
+      'We may disclose information if required by law or to protect the rights, property, or safety of Asian Grocery Nigeria, our customers, or others.',
     ],
   },
   {
@@ -69,9 +69,9 @@ export default function PrivacyPolicyPage() {
         <h1 className="text-3xl font-bold text-[var(--text-primary)] font-display">Privacy Policy</h1>
         <p className="text-sm text-[var(--text-muted)] font-display">Effective Date: 22 June 2026</p>
         <p className="text-[var(--text-secondary)] leading-relaxed font-body">
-          Asian Grocery NG (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) respects your privacy. This policy explains what
+          Asian Grocery Nigeria (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) respects your privacy. This policy explains what
           information we collect when you use our website and app, how we use it, and the choices you have. By using
-          Asian Grocery NG, you agree to the practices described below.
+          Asian Grocery Nigeria, you agree to the practices described below.
         </p>
       </div>
 

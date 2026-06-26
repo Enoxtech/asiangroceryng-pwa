@@ -47,7 +47,7 @@ export function SplashScreen() {
         >
           <Image
             src="/logo.png"
-            alt="Asian Grocery NG"
+            alt="Asian Grocery Nigeria"
             fill
             className="object-contain p-3"
             style={{ filter: 'brightness(0) invert(1)' }}
@@ -57,7 +57,7 @@ export function SplashScreen() {
         </div>
       </div>
       <p className="mt-5 text-base font-bold font-display tracking-tight" style={{ color: 'var(--text-primary)' }}>
-        Asian Grocery NG
+        Asian Grocery Nigeria
       </p>
       <p className="text-xs font-label tracking-widest uppercase mt-1" style={{ color: 'var(--text-muted)' }}>
         Exploring Asia Through Food

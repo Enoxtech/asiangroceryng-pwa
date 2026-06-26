@@ -42,12 +42,12 @@ export function getWhatsAppCartUrl(
   const itemList = items
     .map((item) => `  • ${item.product.name} × ${item.quantity} = ${formatPrice(item.product.price * item.quantity)}`)
     .join('\n');
-  const message = `Hi Asian Grocery NG! I'd like to place an order:\n\n${itemList}\n\n*Total: ${formatPrice(total)}*\n\nPlease confirm availability and delivery details. Thank you!`;
+  const message = `Hi Asian Grocery Nigeria! I'd like to place an order:\n\n${itemList}\n\n*Total: ${formatPrice(total)}*\n\nPlease confirm availability and delivery details. Thank you!`;
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 export function getWhatsAppSupportUrl(): string {
   const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000';
-  const message = encodeURIComponent('Hi! I have a question about Asian Grocery NG.');
+  const message = encodeURIComponent('Hi! I have a question about Asian Grocery Nigeria.');
   return `https://wa.me/${phone}?text=${message}`;
 }

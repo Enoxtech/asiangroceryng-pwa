@@ -12,7 +12,7 @@ const testimonials = [
     rating: 5,
   },
   {
-    quote: "I've been ordering Korean ingredients from Asian Grocery NG for months and I'm always impressed. The prices are fair, delivery to Abuja is surprisingly fast, and the packaging keeps everything fresh.",
+    quote: "I've been ordering Korean ingredients from Asian Grocery Nigeria for months and I'm always impressed. The prices are fair, delivery to Abuja is surprisingly fast, and the packaging keeps everything fresh.",
     name: 'David Okafor',
     role: 'Verified Buyer',
     rating: 5,

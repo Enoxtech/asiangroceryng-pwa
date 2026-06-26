@@ -61,11 +61,11 @@ export default function AdminLoginPage() {
         {/* Header */}
         <div className="text-center space-y-3">
           <div className="relative h-12 w-12 mx-auto">
-            <Image src="/logo.png" alt="Asian Grocery NG" fill className="object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+            <Image src="/logo.png" alt="Asian Grocery Nigeria" fill className="object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
           </div>
           <div>
             <p className="text-[10px] font-label uppercase tracking-widest text-gray-600 mb-1">Admin Access</p>
-            <h1 className="text-xl font-bold text-white font-display">Asian Grocery NG</h1>
+            <h1 className="text-xl font-bold text-white font-display">Asian Grocery Nigeria</h1>
             <p className="text-xs text-gray-500 font-display mt-0.5">
               {needsCode ? 'Enter your 2FA code' : 'Sign in with your admin credentials'}
             </p>

@@ -16,7 +16,7 @@ export default function OfflinePage() {
       >
         Try Again
       </Link>
-      <p className="text-sm text-gray-400">Asian Grocery NG — Exploring Asia Through Food</p>
+      <p className="text-sm text-gray-400">Asian Grocery Nigeria — Exploring Asia Through Food</p>
     </div>
   );
 }

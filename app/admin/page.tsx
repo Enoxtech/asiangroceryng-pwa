@@ -240,7 +240,7 @@ function dlPDF(orders: AnyOrder[]) {
   ).join('');
   const totalRev = monthlyData.reduce((s, m) => s + m.revenue, 0);
   const totalOrd = monthlyData.reduce((s, m) => s + m.orders, 0);
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sales Report - Asian Grocery NG</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sales Report - Asian Grocery Nigeria</title>
 <style>
 body{font-family:Helvetica,Arial,sans-serif;padding:28px;color:#1a1a1a;font-size:13px}
 h1{color:#c41e3a;margin:0 0 3px;font-size:21px}
@@ -255,7 +255,7 @@ tr:nth-child(even){background:#fafaf9}
 .kv{font-size:19px;font-weight:800;color:#c41e3a}
 .kl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
 </style></head><body>
-<h1>Sales Report &#8212; Asian Grocery NG</h1>
+<h1>Sales Report &#8212; Asian Grocery Nigeria</h1>
 <p class="sub">Generated ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
 <div class="kpi">
 <div class="kc"><div class="kv">&#8358;${totalRev.toLocaleString()}</div><div class="kl">Total Revenue (YTD)</div></div>
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
         <div>
           <h1 className="text-xl font-bold text-white font-display">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-0.5 font-display">
-            Asian Grocery NG · {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            Asian Grocery Nigeria · {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

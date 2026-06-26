@@ -19,6 +19,6 @@ export function verifyTotpCode(secret: string, code: string): boolean {
 }
 
 export async function buildTotpQrCode(email: string, secret: string): Promise<string> {
-  const uri = authenticator.keyuri(email, 'Asian Grocery NG Admin', secret);
+  const uri = authenticator.keyuri(email, 'Asian Grocery Nigeria Admin', secret);
   return QRCode.toDataURL(uri);
 }

@@ -4,7 +4,7 @@ const sections = [
   {
     title: '1. Acceptance of Terms',
     body: [
-      'By accessing or using the Asian Grocery NG website or app, you agree to be bound by these Terms of Service. If you do not agree, please do not use our services.',
+      'By accessing or using the Asian Grocery Nigeria website or app, you agree to be bound by these Terms of Service. If you do not agree, please do not use our services.',
     ],
   },
   {
@@ -46,14 +46,14 @@ const sections = [
   {
     title: '7. Limitation of Liability',
     body: [
-      'Asian Grocery NG is not liable for any indirect, incidental, or consequential damages arising from your use of our website, app, or products, to the fullest extent permitted by law.',
+      'Asian Grocery Nigeria is not liable for any indirect, incidental, or consequential damages arising from your use of our website, app, or products, to the fullest extent permitted by law.',
       'Our total liability for any claim related to an order is limited to the amount paid for that order.',
     ],
   },
   {
     title: '8. Intellectual Property',
     body: [
-      'All content on this site — including text, images, logos, and design — is the property of Asian Grocery NG and may not be copied or reused without permission.',
+      'All content on this site — including text, images, logos, and design — is the property of Asian Grocery Nigeria and may not be copied or reused without permission.',
     ],
   },
   {
@@ -78,7 +78,7 @@ export default function TermsOfServicePage() {
         <h1 className="text-3xl font-bold text-[var(--text-primary)] font-display">Terms of Service</h1>
         <p className="text-sm text-[var(--text-muted)] font-display">Effective Date: 22 June 2026</p>
         <p className="text-[var(--text-secondary)] leading-relaxed font-body">
-          These Terms of Service (&quot;Terms&quot;) govern your use of the Asian Grocery NG website and app, and your
+          These Terms of Service (&quot;Terms&quot;) govern your use of the Asian Grocery Nigeria website and app, and your
           purchase of products from us. Please read them carefully before placing an order.
         </p>
       </div>

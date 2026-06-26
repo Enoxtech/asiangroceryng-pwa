@@ -49,9 +49,9 @@ function LoginForm() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="relative h-16 w-16 mx-auto mb-3">
-            <Image src="/logo.png" alt="Asian Grocery NG" fill className="object-contain" />
+            <Image src="/logo.png" alt="Asian Grocery Nigeria" fill className="object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] font-display">Asian Grocery NG</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] font-display">Asian Grocery Nigeria</h1>
           <p className="text-sm text-[var(--text-muted)] font-display mt-0.5">Sign in to continue</p>
         </div>
 

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     });
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://asiangroceryng-pwa.vercel.app';
     const link = `${appUrl}/reset-password?token=${resetToken}`;
-    await sendMail(email, 'Reset your password — Asian Grocery NG', buildResetPasswordEmailHtml(user.name, link));
+    await sendMail(email, 'Reset your password — Asian Grocery Nigeria', buildResetPasswordEmailHtml(user.name, link));
   }
 
   return NextResponse.json({ ok: true });

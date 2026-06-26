@@ -29,7 +29,7 @@ export function buildCustomerConfirmation(order: OrderDetails): string {
   };
 
   return (
-    `🎉 *Order Confirmed — Asian Grocery NG*\n\n` +
+    `🎉 *Order Confirmed — Asian Grocery Nigeria*\n\n` +
     `Order ID: *${order.id}*\n` +
     `Hi ${order.customer}, thank you for your order!\n\n` +
     `*Items Ordered:*\n${lines}\n\n` +
@@ -50,7 +50,7 @@ export function buildAdminAlert(order: OrderDetails): string {
     .join('\n');
 
   return (
-    `🛎️ *NEW ORDER — Asian Grocery NG Admin*\n\n` +
+    `🛎️ *NEW ORDER — Asian Grocery Nigeria Admin*\n\n` +
     `Order ID: *${order.id}*\n` +
     `Customer: ${order.customer}\n` +
     `Phone: ${order.phone}\n` +
@@ -83,7 +83,7 @@ export function sendOrderAlertToAdmin(order: OrderDetails): void {
 
 export function buildPromoMessage(promo: { title: string; code: string; discount: string; minOrder?: number; expiry?: string }): string {
   return (
-    `🎁 *Exclusive Offer — Asian Grocery NG*\n\n` +
+    `🎁 *Exclusive Offer — Asian Grocery Nigeria*\n\n` +
     `*${promo.title}*\n` +
     `Use code: *${promo.code}* for ${promo.discount}\n` +
     (promo.minOrder ? `Minimum order: ₦${promo.minOrder.toLocaleString()}\n` : '') +

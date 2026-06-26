@@ -44,7 +44,7 @@ function ResetPasswordInner() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="relative h-16 w-16 mx-auto mb-3">
-            <Image src="/logo.png" alt="Asian Grocery NG" fill className="object-contain" />
+            <Image src="/logo.png" alt="Asian Grocery Nigeria" fill className="object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] font-display">Reset Password</h1>
         </div>

@@ -30,17 +30,17 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: 'Asian Grocery NG', template: '%s | Asian Grocery NG' },
+  title: { default: 'Asian Grocery Nigeria', template: '%s | Asian Grocery Nigeria' },
   description: 'Exploring Asia Through Food. Korean, Japanese, Chinese, Thai & more — delivered across Nigeria.',
   keywords: ['asian grocery', 'nigeria', 'korean food', 'japanese food', 'ramen', 'boba', 'kimchi'],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    title: 'Asian Grocery NG',
+    title: 'Asian Grocery Nigeria',
     statusBarStyle: 'default',
   },
   openGraph: {
-    title: 'Asian Grocery NG',
+    title: 'Asian Grocery Nigeria',
     description: 'Exploring Asia Through Food — delivered across Nigeria.',
     type: 'website',
   },

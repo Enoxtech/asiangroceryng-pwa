@@ -1,6 +1,6 @@
-# Asian Grocery NG — PWA
+# Asian Grocery Nigeria — PWA
 
-A modern, mobile-first Progressive Web App for Asian Grocery NG — delivering authentic Asian groceries across Nigeria.
+A modern, mobile-first Progressive Web App for Asian Grocery Nigeria — delivering authentic Asian groceries across Nigeria.
 
 ## Stack
 

@@ -109,12 +109,12 @@ export function InstallPrompt() {
             className="relative h-20 w-20 rounded-[22px] shadow-lg overflow-hidden"
             style={{ background: '#c41e3a' }}
           >
-            <Image src="/logo.png" alt="Asian Grocery NG" fill className="object-contain p-2" style={{ filter: 'brightness(0) invert(1)' }} />
+            <Image src="/logo.png" alt="Asian Grocery Nigeria" fill className="object-contain p-2" style={{ filter: 'brightness(0) invert(1)' }} />
           </div>
 
           <div>
             <p className="text-lg font-bold font-display" style={{ color: 'var(--text-primary)' }}>
-              Install Asian Grocery NG
+              Install Asian Grocery Nigeria
             </p>
             <p className="text-sm mt-1 font-display" style={{ color: 'var(--text-muted)' }}>
               Add to your home screen for a faster, app-like shopping experience.

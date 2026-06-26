@@ -1,4 +1,4 @@
-# Asian Grocery NG — Development Roadmap
+# Asian Grocery Nigeria — Development Roadmap
 
 ## Phase 1 — MVP (DONE ✅)
 - [x] Next.js App Router + TypeScript + Tailwind CSS v4

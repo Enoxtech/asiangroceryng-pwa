@@ -64,7 +64,7 @@ const SEED: UserNotification[] = [
   {
     id: 'un-5',
     type: 'system',
-    title: 'Welcome to Asian Grocery NG!',
+    title: 'Welcome to Asian Grocery Nigeria!',
     body: 'Discover authentic flavours from Japan, Korea, China, Vietnam, and Thailand.',
     read: true,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),

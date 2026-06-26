@@ -3,8 +3,8 @@ import { Truck, ShieldCheck, Star, Users, MapPin, MessageCircle, ChefHat, Heart 
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Us | Asian Grocery NG',
-  description: "Welcome to Asian Grocery NG — Nigeria's premier destination for authentic Asian groceries from Japan, Korea, China, Vietnam and Thailand.",
+  title: 'About Us | Asian Grocery Nigeria',
+  description: "Welcome to Asian Grocery Nigeria — Nigeria's premier destination for authentic Asian groceries from Japan, Korea, China, Vietnam and Thailand.",
 };
 
 const values = [
@@ -132,7 +132,7 @@ export default function AboutPage() {
           <p className="text-xs font-label uppercase tracking-widest" style={{ color: 'var(--accent)' }}>Our Team</p>
           <h2 className="text-2xl sm:text-3xl font-bold text-white font-display">More Than Just a Grocery Store</h2>
           <p className="text-white/60 max-w-lg text-sm leading-relaxed font-display">
-            At Asian Grocery NG, we believe shopping for ingredients should be an inspiring experience. Our staff don&apos;t
+            At Asian Grocery Nigeria, we believe shopping for ingredients should be an inspiring experience. Our staff don&apos;t
             just process orders — they&apos;re passionate about Asian food and culture, and love sharing that knowledge with you.
           </p>
           <p className="text-white/60 max-w-lg text-sm leading-relaxed font-display">
@@ -167,7 +167,7 @@ export default function AboutPage() {
           &ldquo;To make authentic Asian flavours accessible to every kitchen in Nigeria.&rdquo;
         </blockquote>
         <p className="text-sm text-[var(--text-secondary)] max-w-xl mx-auto font-display">
-          We started Asian Grocery NG because we knew how hard it was to find genuine Asian ingredients locally. Today,
+          We started Asian Grocery Nigeria because we knew how hard it was to find genuine Asian ingredients locally. Today,
           we&apos;re proud to serve thousands of customers who trust us to bring them the real thing — fresh, authentic, and always reliable.
         </p>
       </div>
@@ -184,7 +184,7 @@ export default function AboutPage() {
           </p>
         </div>
         <a
-          href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent('Hi! I have a question about Asian Grocery NG.')}`}
+          href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '2348000000000'}?text=${encodeURIComponent('Hi! I have a question about Asian Grocery Nigeria.')}`}
           target="_blank"
           rel="noopener noreferrer"
           className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--green)] hover:opacity-70 transition-opacity font-display"

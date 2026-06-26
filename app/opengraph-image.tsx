@@ -43,7 +43,7 @@ export default function OgImage() {
           margin: '0 0 16px', textAlign: 'center', lineHeight: 1.1,
           textShadow: '0 4px 20px rgba(0,0,0,0.4)',
         }}>
-          Asian Grocery NG
+          Asian Grocery Nigeria
         </h1>
 
         <p style={{

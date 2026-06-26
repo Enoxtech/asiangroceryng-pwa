@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://asiangroceryng-pwa.vercel.app';
   const link = `${appUrl}/verify-email?token=${verifyToken}`;
-  await sendMail(session.email, 'Verify your email — Asian Grocery NG', buildVerifyEmailHtml(session.name, link));
+  await sendMail(session.email, 'Verify your email — Asian Grocery Nigeria', buildVerifyEmailHtml(session.name, link));
 
   return NextResponse.json({ ok: true });
 }

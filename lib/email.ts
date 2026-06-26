@@ -21,7 +21,7 @@ export async function sendMail(to: string, subject: string, html: string): Promi
     const mailer = await getMailer();
     if (!mailer) return false;
     await mailer.transporter.sendMail({
-      from: `"Asian Grocery NG" <${mailer.fromAddress}>`,
+      from: `"Asian Grocery Nigeria" <${mailer.fromAddress}>`,
       to,
       subject,
       html,
@@ -44,13 +44,13 @@ function wrapEmail(title: string, bodyHtml: string): string {
       <table width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
         <tr>
           <td style="background:#c41e3a;padding:28px 32px;text-align:center;">
-            <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Asian Grocery NG</h1>
+            <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Asian Grocery Nigeria</h1>
           </td>
         </tr>
         <tr><td style="padding:32px;">${bodyHtml}</td></tr>
         <tr>
           <td style="background:#faf8f5;padding:18px 32px;text-align:center;border-top:1px solid #f0ece4;">
-            <p style="margin:0;font-size:12px;color:#b0a898;">Asian Grocery NG &nbsp;·&nbsp; Store F11, Ikeja Town-Square, Lagos</p>
+            <p style="margin:0;font-size:12px;color:#b0a898;">Asian Grocery Nigeria &nbsp;·&nbsp; Store F11, Ikeja Town-Square, Lagos</p>
           </td>
         </tr>
       </table>

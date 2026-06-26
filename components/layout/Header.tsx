@@ -36,7 +36,7 @@ export function Header() {
           <div className="relative h-10 w-10 shrink-0 group-hover:scale-105 transition-transform duration-200">
             <Image
               src="/logo.png"
-              alt="Asian Grocery NG"
+              alt="Asian Grocery Nigeria"
               fill
               className="object-contain logo-adaptive"
               priority

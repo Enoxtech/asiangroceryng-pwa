@@ -73,10 +73,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r" style={{ background: '#161411', borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="p-4 border-b flex items-center gap-2.5" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <div className="relative h-9 w-9 shrink-0">
-            <Image src="/logo.png" alt="Asian Grocery NG" fill className="object-contain" />
+            <Image src="/logo.png" alt="Asian Grocery Nigeria" fill className="object-contain" />
           </div>
           <div>
-            <p className="text-xs font-bold text-white font-display">Asian Grocery NG</p>
+            <p className="text-xs font-bold text-white font-display">Asian Grocery Nigeria</p>
             <p className="text-[10px] text-red-400 font-label uppercase tracking-wide">Admin Panel</p>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             {/* Mobile logo */}
             <div className="relative h-7 w-7 lg:hidden shrink-0">
-              <Image src="/logo.png" alt="Asian Grocery NG" fill className="object-contain" />
+              <Image src="/logo.png" alt="Asian Grocery Nigeria" fill className="object-contain" />
             </div>
             <p className="font-bold text-white text-sm lg:hidden font-display">Admin</p>
           </div>

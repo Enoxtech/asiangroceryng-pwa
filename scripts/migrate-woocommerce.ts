@@ -214,7 +214,7 @@ async function migrateProduct(wc: WCProduct, index: number, total: number) {
     images: imageUrls,
     category: categoryName,
     categorySlug,
-    brand: wc.brands?.[0]?.name || 'Asian Grocery NG',
+    brand: wc.brands?.[0]?.name || 'Asian Grocery Nigeria',
     countryOfOrigin: '',
     countryFlag: '🌏',
     weight: wc.weight ? `${wc.weight}g` : '',

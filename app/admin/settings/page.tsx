@@ -10,7 +10,7 @@ const sections = [
     title: 'Store Information',
     Icon: Store,
     fields: [
-      { key: 'storeName', label: 'Store Name', value: 'Asian Grocery NG', type: 'text' },
+      { key: 'storeName', label: 'Store Name', value: 'Asian Grocery Nigeria', type: 'text' },
       { key: 'tagline', label: 'Tagline', value: 'Exploring Asia Through Food', type: 'text' },
       { key: 'email', label: 'Store Email', value: 'hello@asiangroceryng.com', type: 'email' },
     ],
@@ -186,7 +186,7 @@ export default function AdminSettingsPage() {
           {[
             { key: 'bankName', label: 'Bank Name', placeholder: 'e.g. GTBank' },
             { key: 'accountNumber', label: 'Account Number', placeholder: 'e.g. 0123456789' },
-            { key: 'accountName', label: 'Account Name', placeholder: 'e.g. Asian Grocery NG' },
+            { key: 'accountName', label: 'Account Name', placeholder: 'e.g. Asian Grocery Nigeria' },
             { key: 'bankBranch', label: 'Bank Branch (optional)', placeholder: 'e.g. Ikeja Branch' },
             { key: 'note', label: 'Payment Note', placeholder: 'e.g. Send proof via WhatsApp after transfer' },
           ].map(({ key, label, placeholder }) => (

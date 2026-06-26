@@ -13,7 +13,7 @@ export function LogoIcon({ className = 'h-8 w-8', strokeWidth = 4.5 }: LogoIconP
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      aria-label="Asian Grocery NG"
+      aria-label="Asian Grocery Nigeria"
       role="img"
     >
       {/* Chopstick 1 */}
