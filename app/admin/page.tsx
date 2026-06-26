@@ -6,51 +6,37 @@ import Link from 'next/link';
 import { Download, FileText, TrendingUp, ShoppingBag, Users, DollarSign, Package, ExternalLink, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/* ─── Mock analytics data ─────────────────────────────────────── */
-const monthlyData = [
-  { month: 'Jan', revenue: 145000, orders: 18 },
-  { month: 'Feb', revenue: 189000, orders: 24 },
-  { month: 'Mar', revenue: 210000, orders: 31 },
-  { month: 'Apr', revenue: 178000, orders: 22 },
-  { month: 'May', revenue: 256000, orders: 38 },
-  { month: 'Jun', revenue: 312000, orders: 45 },
-  { month: 'Jul', revenue: 287000, orders: 41 },
-];
+interface MonthlyPoint { month: string; revenue: number; orders: number }
+interface StatusCount { status: string; count: number }
+interface LabeledRevenue { name?: string; category?: string; revenue: number }
 
-const orderStatusData = [
-  { label: 'Delivered', value: 89, color: '#10B981' },
-  { label: 'Shipped',   value: 23, color: '#3B82F6' },
-  { label: 'Processing',value: 15, color: '#F59E0B' },
-  { label: 'Pending',   value: 12, color: '#8B5CF6' },
-  { label: 'Cancelled', value: 3,  color: '#EF4444' },
-];
+interface AnalyticsResponse {
+  monthly: MonthlyPoint[];
+  orderStatusBreakdown: StatusCount[];
+  topProducts: LabeledRevenue[];
+  categoryRevenue: LabeledRevenue[];
+  revenueTrendPercent: number | null;
+  ordersTrendPercent: number | null;
+}
 
-const topProducts = [
-  { label: 'Jasmine Rice 5kg',   value: 68400, pct: 100 },
-  { label: 'Taro Milk Powder',   value: 54600, pct: 80 },
-  { label: 'Boba Pearls 1kg',    value: 49200, pct: 72 },
-  { label: 'Samyang Buldak',     value: 41600, pct: 61 },
-  { label: 'Miso Ramen Pack',    value: 36800, pct: 54 },
-];
-
-const categoryRevenue = [
-  { label: 'Noodles & Ramen', value: 234000, pct: 100 },
-  { label: 'Boba & Drinks',   value: 189000, pct: 81 },
-  { label: 'Snacks',          value: 156000, pct: 67 },
-  { label: 'Sauces',          value: 134000, pct: 57 },
-  { label: 'Grains',          value: 112000, pct: 48 },
-  { label: 'Frozen',          value:  89000, pct: 38 },
-];
+const STATUS_COLORS: Record<string, string> = {
+  delivered: '#10B981',
+  shipped: '#3B82F6',
+  processing: '#F59E0B',
+  confirmed: '#06B6D4',
+  pending: '#8B5CF6',
+  cancelled: '#EF4444',
+};
 
 /* ─── SVG Area Chart ──────────────────────────────────────────── */
-function AreaChart({ data }: { data: typeof monthlyData }) {
+function AreaChart({ data }: { data: MonthlyPoint[] }) {
   const W = 560; const H = 160;
   const PAD = { t: 18, r: 10, b: 32, l: 54 };
   const cW = W - PAD.l - PAD.r;
   const cH = H - PAD.t - PAD.b;
-  const maxRev = Math.max(...data.map((d) => d.revenue));
+  const maxRev = Math.max(...data.map((d) => d.revenue), 1);
 
-  const px = (i: number) => PAD.l + (i / (data.length - 1)) * cW;
+  const px = (i: number) => PAD.l + (i / Math.max(data.length - 1, 1)) * cW;
   const py = (v: number) => PAD.t + cH - (v / maxRev) * cH;
 
   const linePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${px(i).toFixed(1)} ${py(d.revenue).toFixed(1)}`).join(' ');
@@ -67,7 +53,6 @@ function AreaChart({ data }: { data: typeof monthlyData }) {
         </linearGradient>
       </defs>
 
-      {/* Grid lines */}
       {yTicks.map((v, i) => (
         <g key={i}>
           <line x1={PAD.l} x2={W - PAD.r} y1={py(v)} y2={py(v)}
@@ -78,20 +63,15 @@ function AreaChart({ data }: { data: typeof monthlyData }) {
         </g>
       ))}
 
-      {/* Vertical grid */}
       {data.map((_, i) => (
         <line key={i} x1={px(i)} x2={px(i)} y1={PAD.t} y2={PAD.t + cH}
           stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
       ))}
 
-      {/* Area */}
       <path d={areaPath} fill="url(#areaGrad)" />
-
-      {/* Line */}
       <path d={linePath} fill="none" stroke="#c41e3a" strokeWidth="2.5"
         strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* Dots + labels */}
       {data.map((d, i) => (
         <g key={i}>
           <circle cx={px(i)} cy={py(d.revenue)} r="5" fill="#0f0e0b" stroke="#c41e3a" strokeWidth="2" />
@@ -121,17 +101,20 @@ function arcPath(cx: number, cy: number, r: number, ir: number, a1: number, a2: 
   return `M${s.x.toFixed(2)},${s.y.toFixed(2)} A${r},${r} 0 ${lg},1 ${e.x.toFixed(2)},${e.y.toFixed(2)} L${ei.x.toFixed(2)},${ei.y.toFixed(2)} A${ir},${ir} 0 ${lg},0 ${si.x.toFixed(2)},${si.y.toFixed(2)}Z`;
 }
 
-function DonutChart({ data }: { data: typeof orderStatusData }) {
-  const total = data.reduce((s, d) => s + d.value, 0);
+function DonutChart({ data }: { data: StatusCount[] }) {
+  const total = data.reduce((s, d) => s + d.count, 0);
+  if (total === 0) {
+    return <p className="text-sm text-gray-500 font-display text-center py-8">No orders yet.</p>;
+  }
   let angle = 0;
   const cx = 90; const cy = 90; const r = 74; const ir = 48;
   return (
     <div className="flex items-center gap-5">
       <svg viewBox="0 0 180 180" className="w-44 h-44 shrink-0">
         {data.map((d) => {
-          const sweep = (d.value / total) * 359.99;
+          const sweep = (d.count / total) * 359.99;
           const a1 = angle; angle += sweep;
-          return <path key={d.label} d={arcPath(cx, cy, r, ir, a1, angle)} fill={d.color}
+          return <path key={d.status} d={arcPath(cx, cy, r, ir, a1, angle)} fill={STATUS_COLORS[d.status] ?? '#6B7280'}
             stroke="#0f0e0b" strokeWidth="2.5" />;
         })}
         <circle cx={cx} cy={cy} r={ir - 2} fill="#0f0e0b" />
@@ -140,11 +123,11 @@ function DonutChart({ data }: { data: typeof orderStatusData }) {
       </svg>
       <div className="flex flex-col gap-2 min-w-0 flex-1">
         {data.map((d) => (
-          <div key={d.label} className="flex items-center gap-2 text-xs">
-            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.color }} />
-            <span className="text-gray-400 font-display flex-1">{d.label}</span>
-            <span className="font-mono font-bold text-gray-200 tabular-nums">{d.value}</span>
-            <span className="text-gray-600 font-mono w-8 text-right">{((d.value / total) * 100).toFixed(0)}%</span>
+          <div key={d.status} className="flex items-center gap-2 text-xs">
+            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: STATUS_COLORS[d.status] ?? '#6B7280' }} />
+            <span className="text-gray-400 font-display flex-1 capitalize">{d.status}</span>
+            <span className="font-mono font-bold text-gray-200 tabular-nums">{d.count}</span>
+            <span className="text-gray-600 font-mono w-8 text-right">{((d.count / total) * 100).toFixed(0)}%</span>
           </div>
         ))}
       </div>
@@ -157,7 +140,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   const max = Math.max(...values); const min = Math.min(...values);
   const range = max - min || 1;
   const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 72;
+    const x = (i / Math.max(values.length - 1, 1)) * 72;
     const y = 24 - ((v - min) / range) * 20;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
@@ -186,9 +169,9 @@ function HorizBar({ label, pct, value, color }: { label: string; pct: number; va
 /* ─── KPI Card ────────────────────────────────────────────────── */
 function KpiCard({ label, value, sub, icon: Icon, trend, sparkValues, color }: {
   label: string; value: string; sub: string; icon: React.ElementType;
-  trend: number; sparkValues: number[]; color: string;
+  trend: number | null; sparkValues: number[]; color: string;
 }) {
-  const up = trend >= 0;
+  const up = (trend ?? 0) >= 0;
   return (
     <div className="rounded-2xl border p-5 flex flex-col gap-3" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
       <div className="flex items-start justify-between gap-2">
@@ -202,9 +185,13 @@ function KpiCard({ label, value, sub, icon: Icon, trend, sparkValues, color }: {
         <p className="text-[10px] font-label uppercase tracking-widest text-gray-500 mt-0.5">{label}</p>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className={cn('text-xs font-bold font-mono', up ? 'text-green-400' : 'text-red-400')}>
-          {up ? '+' : ''}{trend}%
-        </span>
+        {trend !== null ? (
+          <span className={cn('text-xs font-bold font-mono', up ? 'text-green-400' : 'text-red-400')}>
+            {up ? '+' : ''}{trend}%
+          </span>
+        ) : (
+          <span className="text-xs font-bold font-mono text-gray-600">—</span>
+        )}
         <span className="text-[10px] text-gray-600 font-display truncate">{sub}</span>
       </div>
     </div>
@@ -214,13 +201,13 @@ function KpiCard({ label, value, sub, icon: Icon, trend, sparkValues, color }: {
 /* ─── CSV / PDF download ──────────────────────────────────────── */
 type AnyOrder = { id: string; customer: string; total: number; status: string; date: string; area: string; payment: string };
 
-function dlCSV(orders: AnyOrder[]) {
+function dlCSV(orders: AnyOrder[], monthly: MonthlyPoint[]) {
   const rows = [
     ['Order ID', 'Customer', 'Total (N)', 'Status', 'Area', 'Payment', 'Date'],
     ...orders.map((o) => [o.id, o.customer, o.total, o.status, o.area, o.payment.replace(/_/g, ' '), o.date]),
     [],
     ['Month', 'Orders', 'Revenue (N)', 'Avg Order Value (N)'],
-    ...monthlyData.map((m) => [m.month, m.orders, m.revenue, Math.round(m.revenue / m.orders)]),
+    ...monthly.map((m) => [m.month, m.orders, m.revenue, m.orders > 0 ? Math.round(m.revenue / m.orders) : 0]),
   ];
   const csv = rows.map((r) => r.join(',')).join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -231,15 +218,15 @@ function dlCSV(orders: AnyOrder[]) {
   URL.revokeObjectURL(url);
 }
 
-function dlPDF(orders: AnyOrder[]) {
+function dlPDF(orders: AnyOrder[], monthly: MonthlyPoint[], customerCount: number | null) {
   const orderRows = orders.slice(0, 20).map((o) =>
     `<tr><td>${o.id}</td><td>${o.customer}</td><td>&#8358;${o.total.toLocaleString()}</td><td style="text-transform:capitalize">${o.status}</td><td>${o.date}</td></tr>`
   ).join('');
-  const monthRows = monthlyData.map((m) =>
-    `<tr><td>${m.month} 2024</td><td>${m.orders}</td><td>&#8358;${m.revenue.toLocaleString()}</td><td>&#8358;${Math.round(m.revenue / m.orders).toLocaleString()}</td></tr>`
+  const monthRows = monthly.map((m) =>
+    `<tr><td>${m.month}</td><td>${m.orders}</td><td>&#8358;${m.revenue.toLocaleString()}</td><td>&#8358;${(m.orders > 0 ? Math.round(m.revenue / m.orders) : 0).toLocaleString()}</td></tr>`
   ).join('');
-  const totalRev = monthlyData.reduce((s, m) => s + m.revenue, 0);
-  const totalOrd = monthlyData.reduce((s, m) => s + m.orders, 0);
+  const totalRev = orders.reduce((s, o) => s + o.total, 0);
+  const totalOrd = orders.length;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sales Report - Asian Grocery Nigeria</title>
 <style>
 body{font-family:Helvetica,Arial,sans-serif;padding:28px;color:#1a1a1a;font-size:13px}
@@ -258,12 +245,12 @@ tr:nth-child(even){background:#fafaf9}
 <h1>Sales Report &#8212; Asian Grocery Nigeria</h1>
 <p class="sub">Generated ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
 <div class="kpi">
-<div class="kc"><div class="kv">&#8358;${totalRev.toLocaleString()}</div><div class="kl">Total Revenue (YTD)</div></div>
+<div class="kc"><div class="kv">&#8358;${totalRev.toLocaleString()}</div><div class="kl">Total Revenue (All Time)</div></div>
 <div class="kc"><div class="kv">${totalOrd}</div><div class="kl">Total Orders</div></div>
-<div class="kc"><div class="kv">&#8358;${Math.round(totalRev / totalOrd).toLocaleString()}</div><div class="kl">Avg Order Value</div></div>
-<div class="kc"><div class="kv">142</div><div class="kl">Customers</div></div>
+<div class="kc"><div class="kv">&#8358;${(totalOrd > 0 ? Math.round(totalRev / totalOrd) : 0).toLocaleString()}</div><div class="kl">Avg Order Value</div></div>
+<div class="kc"><div class="kv">${customerCount ?? '—'}</div><div class="kl">Customers</div></div>
 </div>
-<h2>Monthly Revenue Breakdown</h2>
+<h2>Monthly Revenue Breakdown (last ${monthly.length} months)</h2>
 <table><thead><tr><th>Month</th><th>Orders</th><th>Revenue</th><th>Avg. Order Value</th></tr></thead><tbody>${monthRows}</tbody></table>
 <h2>Recent Order History</h2>
 <table><thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead><tbody>${orderRows}</tbody></table>
@@ -279,6 +266,7 @@ tr:nth-child(even){background:#fafaf9}
 export default function AdminDashboardPage() {
   const { orders, products, hydrateOrders } = useAdminStore();
   const [customerCount, setCustomerCount] = useState<number | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
 
   useEffect(() => {
     hydrateOrders();
@@ -286,6 +274,10 @@ export default function AdminDashboardPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((c) => setCustomerCount(c.length))
       .catch(() => setCustomerCount(0));
+    fetch('/api/admin/analytics')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setAnalytics)
+      .catch(() => {});
   }, [hydrateOrders]);
 
   const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
@@ -293,6 +285,14 @@ export default function AdminDashboardPage() {
   const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
   const lowStock = products.filter((p) => p.inStock && p.stockCount <= 15).length;
   const outOfStock = products.filter((p) => !p.inStock).length;
+
+  const monthly = analytics?.monthly ?? [];
+  const deliveredCount = analytics?.orderStatusBreakdown.find((s) => s.status === 'delivered')?.count ?? 0;
+  const totalStatusCount = analytics?.orderStatusBreakdown.reduce((s, d) => s + d.count, 0) ?? 0;
+  const completionRate = totalStatusCount > 0 ? Math.round((deliveredCount / totalStatusCount) * 100) : null;
+
+  const maxProductRevenue = Math.max(...(analytics?.topProducts.map((p) => p.revenue) ?? [1]), 1);
+  const maxCategoryRevenue = Math.max(...(analytics?.categoryRevenue.map((c) => c.revenue) ?? [1]), 1);
 
   const card = 'rounded-2xl border p-5';
   const cardStyle = { background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' };
@@ -309,12 +309,12 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => dlCSV(orders as AnyOrder[])}
+          <button onClick={() => dlCSV(orders as AnyOrder[], monthly)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-80 transition-opacity cursor-pointer"
             style={{ background: '#10B981' }}>
             <Download className="h-4 w-4" /> Export Excel
           </button>
-          <button onClick={() => dlPDF(orders as AnyOrder[])}
+          <button onClick={() => dlPDF(orders as AnyOrder[], monthly, customerCount)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-80 transition-opacity cursor-pointer"
             style={{ background: '#3B82F6' }}>
             <FileText className="h-4 w-4" /> Export PDF
@@ -325,17 +325,17 @@ export default function AdminDashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Total Revenue" value={`₦${(totalRevenue / 1000).toFixed(0)}k`}
-          sub="vs last month" icon={DollarSign} trend={12.4}
-          sparkValues={monthlyData.map((d) => d.revenue)} color="#c41e3a" />
+          sub="vs last month" icon={DollarSign} trend={analytics?.revenueTrendPercent ?? null}
+          sparkValues={monthly.length > 1 ? monthly.map((d) => d.revenue) : [totalRevenue, totalRevenue]} color="#c41e3a" />
         <KpiCard label="Total Orders" value={String(totalOrders)}
-          sub="vs last month" icon={ShoppingBag} trend={8.1}
-          sparkValues={monthlyData.map((d) => d.orders)} color="#3B82F6" />
+          sub="vs last month" icon={ShoppingBag} trend={analytics?.ordersTrendPercent ?? null}
+          sparkValues={monthly.length > 1 ? monthly.map((d) => d.orders) : [totalOrders, totalOrders]} color="#3B82F6" />
         <KpiCard label="Avg Order Value" value={`₦${(avgOrder / 1000).toFixed(1)}k`}
-          sub="vs last month" icon={TrendingUp} trend={-2.3}
-          sparkValues={[6800, 7200, 6900, 7500, 7100, 7400, 7200]} color="#8B5CF6" />
+          sub="all time" icon={TrendingUp} trend={null}
+          sparkValues={[avgOrder, avgOrder]} color="#8B5CF6" />
         <KpiCard label="Customers" value={customerCount === null ? '–' : String(customerCount)}
-          sub="registered accounts" icon={Users} trend={0}
-          sparkValues={[1, 1, 1, 1, 1, 1, customerCount || 1]} color="#10B981" />
+          sub="registered accounts" icon={Users} trend={null}
+          sparkValues={[customerCount || 0, customerCount || 0]} color="#10B981" />
       </div>
 
       {/* Alerts */}
@@ -365,26 +365,32 @@ export default function AdminDashboardPage() {
         <div className={cn(card, 'lg:col-span-3')} style={cardStyle}>
           <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <div>
-              <p className={sectionLabel}>Revenue Trend — Jan to Jul 2024</p>
-              <p className="text-2xl font-bold text-white font-display tabular-nums">₦1,577,000</p>
-              <p className="text-xs text-green-400 font-mono mt-0.5">+12.4% vs previous period</p>
+              <p className={sectionLabel}>
+                Revenue Trend{monthly.length > 0 ? ` — ${monthly[0].month} to ${monthly[monthly.length - 1].month}` : ''}
+              </p>
+              <p className="text-2xl font-bold text-white font-display tabular-nums">₦{totalRevenue.toLocaleString()}</p>
+              <p className="text-xs text-gray-500 font-mono mt-0.5">
+                {analytics?.revenueTrendPercent !== null && analytics?.revenueTrendPercent !== undefined
+                  ? <span className={analytics.revenueTrendPercent >= 0 ? 'text-green-400' : 'text-red-400'}>{analytics.revenueTrendPercent >= 0 ? '+' : ''}{analytics.revenueTrendPercent}% vs last month</span>
+                  : 'Not enough history yet'}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-label uppercase tracking-widest text-gray-600">219 total orders</p>
-              <p className="text-xs text-gray-500 font-display mt-0.5">Avg ₦7,200 / order</p>
+              <p className="text-[10px] font-label uppercase tracking-widest text-gray-600">{totalOrders} total orders</p>
+              <p className="text-xs text-gray-500 font-display mt-0.5">Avg ₦{avgOrder.toLocaleString()} / order</p>
             </div>
           </div>
-          <AreaChart data={monthlyData} />
+          {monthly.length > 0 ? <AreaChart data={monthly} /> : <p className="text-sm text-gray-500 font-display text-center py-8">No order history yet.</p>}
         </div>
 
         <div className={cn(card, 'lg:col-span-2')} style={cardStyle}>
           <p className={sectionLabel}>Order Status Breakdown</p>
-          <DonutChart data={orderStatusData} />
+          <DonutChart data={analytics?.orderStatusBreakdown ?? []} />
           <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             <div className="flex justify-between text-xs">
               <span className="text-gray-500 font-display">Completion rate</span>
               <span className="font-bold text-green-400 font-mono">
-                {Math.round((89 / orderStatusData.reduce((s, d) => s + d.value, 0)) * 100)}%
+                {completionRate !== null ? `${completionRate}%` : '—'}
               </span>
             </div>
           </div>
@@ -394,25 +400,33 @@ export default function AdminDashboardPage() {
       {/* Top Products + Category Revenue */}
       <div className="grid lg:grid-cols-2 gap-4">
         <div className={card} style={cardStyle}>
-          <p className={sectionLabel}>Top Products by Revenue</p>
-          <div className="space-y-3">
-            {topProducts.map((p) => (
-              <HorizBar key={p.label} label={p.label} pct={p.pct} value={p.value} color="#c41e3a" />
-            ))}
-          </div>
+          <p className={sectionLabel}>Top Products by Revenue (last 6 months)</p>
+          {analytics?.topProducts.length ? (
+            <div className="space-y-3">
+              {analytics.topProducts.map((p) => (
+                <HorizBar key={p.name} label={p.name ?? ''} pct={(p.revenue / maxProductRevenue) * 100} value={p.revenue} color="#c41e3a" />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 font-display py-4">No sales data yet.</p>
+          )}
           <Link href="/admin/products" className="inline-flex items-center gap-1.5 text-xs text-brand-red font-semibold mt-4 hover:opacity-75 transition-opacity font-display">
             Manage Products <ExternalLink className="h-3 w-3" />
           </Link>
         </div>
 
         <div className={card} style={cardStyle}>
-          <p className={sectionLabel}>Revenue by Category</p>
-          <div className="space-y-3">
-            {categoryRevenue.map((c, i) => (
-              <HorizBar key={c.label} label={c.label} pct={c.pct} value={c.value}
-                color={['#c41e3a', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'][i]} />
-            ))}
-          </div>
+          <p className={sectionLabel}>Revenue by Category (last 6 months)</p>
+          {analytics?.categoryRevenue.length ? (
+            <div className="space-y-3">
+              {analytics.categoryRevenue.map((c, i) => (
+                <HorizBar key={c.category} label={c.category ?? ''} pct={(c.revenue / maxCategoryRevenue) * 100} value={c.revenue}
+                  color={['#c41e3a', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'][i]} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 font-display py-4">No sales data yet.</p>
+          )}
           <Link href="/admin/categories" className="inline-flex items-center gap-1.5 text-xs text-brand-red font-semibold mt-4 hover:opacity-75 transition-opacity font-display">
             Manage Categories <ExternalLink className="h-3 w-3" />
           </Link>
@@ -478,7 +492,9 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-              {orders.slice(0, 8).map((o) => {
+              {orders.length === 0 ? (
+                <tr><td colSpan={5} className="py-8 text-center text-sm text-gray-500 font-display">No orders yet.</td></tr>
+              ) : orders.slice(0, 8).map((o) => {
                 const sc: Record<string, string> = {
                   pending: 'bg-amber-500/15 text-amber-400', confirmed: 'bg-blue-400/15 text-blue-300',
                   processing: 'bg-blue-500/15 text-blue-400', shipped: 'bg-green-500/15 text-green-400',

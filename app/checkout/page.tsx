@@ -187,7 +187,7 @@ export default function CheckoutPage() {
       customer: form.name || 'Customer',
       phone: form.phone,
       email: form.email,
-      items: items.map((i) => ({ name: i.product.name, quantity: i.quantity, price: i.product.price })),
+      items: items.map((i) => ({ name: i.product.name, quantity: i.quantity, price: i.product.price, productId: i.product.id, categorySlug: i.product.categorySlug })),
       subtotal,
       deliveryFee,
       discount: discount > 0 ? discount : undefined,

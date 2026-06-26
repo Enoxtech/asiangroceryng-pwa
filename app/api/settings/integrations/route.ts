@@ -22,6 +22,13 @@ const STRING_FIELDS = [
   'whatsappBusinessAccountId',
   'whatsappOrderTemplateName',
   'whatsappTemplateLanguage',
+  'storeName',
+  'tagline',
+  'storeEmail',
+  'storeAddress',
+  'businessHoursWeekdays',
+  'businessHoursSaturday',
+  'businessHoursSunday',
 ] as const;
 
 // Secret fields are never sent to the client — only a "configured" flag.
@@ -43,6 +50,13 @@ function toSafeShape(s: IntegrationSettings) {
     whatsappBusinessAccountId: s.whatsappBusinessAccountId,
     whatsappOrderTemplateName: s.whatsappOrderTemplateName,
     whatsappTemplateLanguage: s.whatsappTemplateLanguage,
+    storeName: s.storeName,
+    tagline: s.tagline,
+    storeEmail: s.storeEmail,
+    storeAddress: s.storeAddress,
+    businessHoursWeekdays: s.businessHoursWeekdays,
+    businessHoursSaturday: s.businessHoursSaturday,
+    businessHoursSunday: s.businessHoursSunday,
   };
 }
 

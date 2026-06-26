@@ -71,10 +71,12 @@ export async function POST(req: NextRequest) {
       notes: body.notes,
       source: body.source ?? 'checkout',
       items: {
-        create: (body.items ?? []).map((it: { name: string; quantity: number; price: number }) => ({
+        create: (body.items ?? []).map((it: { name: string; quantity: number; price: number; productId?: string; categorySlug?: string }) => ({
           name: it.name,
           quantity: it.quantity,
           price: it.price,
+          productId: it.productId,
+          categorySlug: it.categorySlug,
         })),
       },
     },

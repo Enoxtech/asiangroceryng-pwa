@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Truck, Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 
-type BannerVariant = 'delivery' | 'korean' | 'snacks' | 'chalkboard';
+type BannerVariant = 'korean' | 'snacks' | 'chalkboard';
 
 interface PromoBannerProps {
   variant: BannerVariant;
@@ -11,7 +11,7 @@ interface PromoBannerProps {
 
 const codedConfig: Record<Exclude<BannerVariant, 'chalkboard'>, {
   bg: string;
-  Icon: typeof Truck;
+  Icon: typeof Sparkles;
   eyebrow: string;
   headline: string;
   subline: string;
@@ -20,17 +20,6 @@ const codedConfig: Record<Exclude<BannerVariant, 'chalkboard'>, {
   accent: string;
   blob: string;
 }> = {
-  delivery: {
-    bg: 'linear-gradient(135deg, #2d6a4f 0%, #4F5343 100%)',
-    Icon: Truck,
-    eyebrow: 'LIMITED TIME OFFER',
-    headline: 'Free Delivery',
-    subline: 'On all orders above ₦15,000 in Lagos',
-    cta: 'Order Now',
-    href: '/shop',
-    accent: '#CEBFA9',
-    blob: 'rgba(206,191,169,0.18)',
-  },
   korean: {
     bg: 'linear-gradient(135deg, #1a1814 0%, #2a2720 100%)',
     Icon: Sparkles,

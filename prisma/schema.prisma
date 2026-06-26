@@ -82,12 +82,14 @@ model Order {
 }
 
 model OrderItem {
-  id       String @id @default(cuid())
-  orderId  String
-  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  name     String
-  quantity Int
-  price    Float
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  name         String
+  quantity     Int
+  price        Float
+  productId    String?
+  categorySlug String?
 }
 
 model Banner {
@@ -171,6 +173,14 @@ model IntegrationSettings {
   whatsappBusinessAccountId  String @default("")
   whatsappOrderTemplateName  String @default("")
   whatsappTemplateLanguage   String @default("en_US")
+  storeName              String @default("Asian Grocery Nigeria")
+  tagline                String @default("Exploring Asia Through Food")
+  storeEmail             String @default("hello@asiangroceryng.com")
+  storeAddress           String @default("Lagos, Nigeria")
+  deliveryFreeThreshold  Float  @default(15000)
+  businessHoursWeekdays  String @default("8:00 AM – 7:00 PM WAT")
+  businessHoursSaturday  String @default("9:00 AM – 5:00 PM WAT")
+  businessHoursSunday    String @default("Closed")
 }
 
 model DeliveryArea {

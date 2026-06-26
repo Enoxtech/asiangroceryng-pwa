@@ -4,39 +4,6 @@ import { useState, useEffect } from 'react';
 import { Save, Store, Phone, Clock, MessageCircle, Building2, CreditCard, Mail, Percent } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 
-const sections = [
-  {
-    id: 'store',
-    title: 'Store Information',
-    Icon: Store,
-    fields: [
-      { key: 'storeName', label: 'Store Name', value: 'Asian Grocery Nigeria', type: 'text' },
-      { key: 'tagline', label: 'Tagline', value: 'Exploring Asia Through Food', type: 'text' },
-      { key: 'email', label: 'Store Email', value: 'hello@asiangroceryng.com', type: 'email' },
-    ],
-  },
-  {
-    id: 'contact',
-    title: 'Contact & Delivery',
-    Icon: Phone,
-    fields: [
-      { key: 'phone', label: 'WhatsApp Number', value: '2348000000000', type: 'text' },
-      { key: 'address', label: 'Store Address', value: 'Lagos, Nigeria', type: 'text' },
-      { key: 'deliveryMin', label: 'Free Delivery Minimum (₦)', value: '15000', type: 'number' },
-    ],
-  },
-  {
-    id: 'hours',
-    title: 'Business Hours',
-    Icon: Clock,
-    fields: [
-      { key: 'weekdays', label: 'Mon – Fri', value: '8:00 AM – 7:00 PM WAT', type: 'text' },
-      { key: 'saturday', label: 'Saturday', value: '9:00 AM – 5:00 PM WAT', type: 'text' },
-      { key: 'sunday', label: 'Sunday', value: 'Closed', type: 'text' },
-    ],
-  },
-];
-
 interface IntegrationSettingsView {
   paystackPublicKey: string;
   paystackSecretKeySet: boolean;
@@ -53,12 +20,22 @@ interface IntegrationSettingsView {
   whatsappBusinessAccountId: string;
   whatsappOrderTemplateName: string;
   whatsappTemplateLanguage: string;
+  storeName: string;
+  tagline: string;
+  storeEmail: string;
+  storeAddress: string;
+  businessHoursWeekdays: string;
+  businessHoursSaturday: string;
+  businessHoursSunday: string;
 }
 
 export default function AdminSettingsPage() {
   const { bankDetails, updateBankDetails } = useAdminStore();
-  const [saved, setSaved] = useState(false);
   const [bankSaved, setBankSaved] = useState(false);
+  const [storeInfo, setStoreInfo] = useState({ storeName: '', tagline: '', storeEmail: '', storeAddress: '' });
+  const [hours, setHours] = useState({ businessHoursWeekdays: '', businessHoursSaturday: '', businessHoursSunday: '' });
+  const [storeInfoSaved, setStoreInfoSaved] = useState(false);
+  const [hoursSaved, setHoursSaved] = useState(false);
   const [bank, setBank] = useState({
     bankName: bankDetails.bankName,
     accountNumber: bankDetails.accountNumber,
@@ -109,13 +86,38 @@ export default function AdminSettingsPage() {
           whatsappOrderTemplateName: data.whatsappOrderTemplateName,
           whatsappTemplateLanguage: data.whatsappTemplateLanguage,
         });
+        setStoreInfo({ storeName: data.storeName, tagline: data.tagline, storeEmail: data.storeEmail, storeAddress: data.storeAddress });
+        setHours({ businessHoursWeekdays: data.businessHoursWeekdays, businessHoursSaturday: data.businessHoursSaturday, businessHoursSunday: data.businessHoursSunday });
       })
       .catch(() => {});
   }, []);
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  async function handleStoreInfoSave() {
+    const res = await fetch('/api/settings/integrations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(storeInfo),
+    });
+    if (res.ok) {
+      const data: IntegrationSettingsView = await res.json();
+      setIntegrations(data);
+      setStoreInfoSaved(true);
+      setTimeout(() => setStoreInfoSaved(false), 2000);
+    }
+  }
+
+  async function handleHoursSave() {
+    const res = await fetch('/api/settings/integrations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(hours),
+    });
+    if (res.ok) {
+      const data: IntegrationSettingsView = await res.json();
+      setIntegrations(data);
+      setHoursSaved(true);
+      setTimeout(() => setHoursSaved(false), 2000);
+    }
   }
 
   function handleBankSave() {
@@ -188,42 +190,95 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white font-display">Settings</h1>
-          <p className="text-gray-500 text-sm mt-0.5 font-display">Manage your store configuration</p>
-        </div>
-        <button
-          onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold font-display transition-all"
-          style={{ background: saved ? '#10B981' : '#c41e3a', color: 'white' }}
-        >
-          <Save className="h-4 w-4" />
-          {saved ? 'Saved!' : 'Save Changes'}
-        </button>
+      <div>
+        <h1 className="text-xl font-bold text-white font-display">Settings</h1>
+        <p className="text-gray-500 text-sm mt-0.5 font-display">Manage your store configuration</p>
       </div>
 
-      {sections.map(({ id, title, Icon, fields }) => (
-        <div key={id} className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
-          <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <Icon className="h-4 w-4 text-gray-400" />
-            <h2 className="font-bold text-white text-sm font-display">{title}</h2>
-          </div>
-          <div className="p-5 space-y-4">
-            {fields.map(({ key, label, value, type }) => (
-              <div key={key}>
-                <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">{label}</label>
-                <input
-                  type={type}
-                  defaultValue={value}
-                  className={inputCls}
-                  style={inputStyle}
-                />
-              </div>
-            ))}
-          </div>
+      {/* Store Information */}
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <Store className="h-4 w-4 text-gray-400" />
+          <h2 className="font-bold text-white text-sm font-display">Store Information</h2>
         </div>
-      ))}
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Store Name</label>
+            <input value={storeInfo.storeName} onChange={(e) => setStoreInfo((s) => ({ ...s, storeName: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Tagline</label>
+            <input value={storeInfo.tagline} onChange={(e) => setStoreInfo((s) => ({ ...s, tagline: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Store Email</label>
+            <input type="email" value={storeInfo.storeEmail} onChange={(e) => setStoreInfo((s) => ({ ...s, storeEmail: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Store Address</label>
+            <input value={storeInfo.storeAddress} onChange={(e) => setStoreInfo((s) => ({ ...s, storeAddress: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <p className="text-[10px] text-gray-600 font-label leading-relaxed">
+            Saved for your records and shown on pages that read these settings. Note: page titles, the logo header, and
+            emails currently use a fixed site-wide name — ask if you&apos;d like that wired to this field too.
+          </p>
+          <button
+            onClick={handleStoreInfoSave}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold font-display transition-all w-full justify-center"
+            style={{ background: storeInfoSaved ? '#10B981' : '#c41e3a', color: 'white' }}
+          >
+            <Save className="h-4 w-4" />
+            {storeInfoSaved ? 'Store Info Saved!' : 'Save Store Info'}
+          </button>
+        </div>
+      </div>
+
+      {/* WhatsApp ordering number */}
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <Phone className="h-4 w-4 text-gray-400" />
+          <h2 className="font-bold text-white text-sm font-display">WhatsApp Ordering Number</h2>
+        </div>
+        <div className="p-5 space-y-2">
+          <p className="text-sm text-gray-300 font-mono">{process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || 'Not set'}</p>
+          <p className="text-[10px] text-gray-600 font-label leading-relaxed">
+            This number is set via the <span className="text-gray-400">NEXT_PUBLIC_WHATSAPP_NUMBER</span> environment
+            variable in Vercel, not here — changing it requires updating that variable and redeploying. Ask if you&apos;d
+            like help changing it.
+          </p>
+        </div>
+      </div>
+
+      {/* Business Hours */}
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <Clock className="h-4 w-4 text-gray-400" />
+          <h2 className="font-bold text-white text-sm font-display">Business Hours</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-500 font-display">Shown on the Contact page.</p>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Mon – Fri</label>
+            <input value={hours.businessHoursWeekdays} onChange={(e) => setHours((h) => ({ ...h, businessHoursWeekdays: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Saturday</label>
+            <input value={hours.businessHoursSaturday} onChange={(e) => setHours((h) => ({ ...h, businessHoursSaturday: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-[10px] font-label uppercase tracking-widest text-gray-500 mb-1.5">Sunday</label>
+            <input value={hours.businessHoursSunday} onChange={(e) => setHours((h) => ({ ...h, businessHoursSunday: e.target.value }))} className={inputCls} style={inputStyle} />
+          </div>
+          <button
+            onClick={handleHoursSave}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold font-display transition-all w-full justify-center"
+            style={{ background: hoursSaved ? '#10B981' : '#c41e3a', color: 'white' }}
+          >
+            <Save className="h-4 w-4" />
+            {hoursSaved ? 'Business Hours Saved!' : 'Save Business Hours'}
+          </button>
+        </div>
+      </div>
 
       {/* Tax / VAT */}
       <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>

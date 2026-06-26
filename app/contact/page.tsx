@@ -1,48 +1,58 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle, Mail, Phone, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { getWhatsAppSupportUrl } from '@/lib/utils';
-
-const contactInfo = [
-  {
-    Icon: Phone,
-    label: 'Phone',
-    value: '+2347076930636',
-    href: 'tel:+2347076930636',
-  },
-  {
-    Icon: Mail,
-    label: 'Email',
-    value: 'asiangroceryng@gmail.com',
-    href: 'mailto:asiangroceryng@gmail.com',
-  },
-  {
-    Icon: Clock,
-    label: 'Business Hours',
-    value: 'Mon–Sat: 12pm – 4pm WAT',
-    href: null,
-  },
-  {
-    Icon: MapPin,
-    label: 'Location',
-    value: 'Store F11 Ikeja Town-Square Alausa, Lagos',
-    href: 'https://maps.google.com/?q=131+Obafemi+Awolowo+way+Ikeja+Lagos',
-  },
-];
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const [hours, setHours] = useState({ weekdays: '8:00 AM – 7:00 PM WAT', saturday: '9:00 AM – 5:00 PM WAT', sunday: 'Closed' });
+
+  useEffect(() => {
+    fetch('/api/settings/public')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setHours({
+          weekdays: data.businessHoursWeekdays || hours.weekdays,
+          saturday: data.businessHoursSaturday || hours.saturday,
+          sunday: data.businessHoursSunday || hours.sunday,
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const contactInfo = [
+    { Icon: Phone, label: 'Phone', value: '+2347076930636', href: 'tel:+2347076930636' },
+    { Icon: Mail, label: 'Email', value: 'asiangroceryng@gmail.com', href: 'mailto:asiangroceryng@gmail.com' },
+    { Icon: Clock, label: 'Business Hours', value: `Mon–Fri: ${hours.weekdays} · Sat: ${hours.saturday} · Sun: ${hours.sunday}`, href: null },
+    { Icon: MapPin, label: 'Location', value: 'Store F11 Ikeja Town-Square Alausa, Lagos', href: 'https://maps.google.com/?q=131+Obafemi+Awolowo+way+Ikeja+Lagos' },
+  ];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setSent(true);
+    setError('');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Could not send your message');
+      setSent(true);
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send your message');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -111,6 +121,9 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <h2 className="font-bold text-[var(--text-primary)] font-display mb-2">Send a Message</h2>
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 font-display">{error}</div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-label uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Name *</label>

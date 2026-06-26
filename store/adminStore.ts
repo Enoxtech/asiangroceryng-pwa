@@ -5,6 +5,8 @@ export interface OrderLineItem {
   name: string;
   quantity: number;
   price: number;
+  productId?: string;
+  categorySlug?: string;
 }
 
 export interface AdminOrder {

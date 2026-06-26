@@ -61,7 +61,7 @@ export async function sendMail(to: string, subject: string, html: string): Promi
   }
 }
 
-function wrapEmail(title: string, bodyHtml: string): string {
+export function wrapEmail(title: string, bodyHtml: string): string {
   return `
 <!DOCTYPE html>
 <html lang="en">

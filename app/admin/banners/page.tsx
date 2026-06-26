@@ -168,7 +168,7 @@ export default function AdminBannersPage() {
 
       <div className="rounded-2xl border p-4" style={{ background: '#1a1814', borderColor: 'rgba(255,255,255,0.06)' }}>
         <p className="text-xs text-gray-500 font-display">
-          <span className="text-gray-300 font-semibold">Tip:</span> Banners are saved to your browser. For persistent changes across devices, connect Supabase in Phase 2.
+          <span className="text-gray-300 font-semibold">Tip:</span> Changes save to the database immediately and apply across all devices.
           Use the arrows to reorder, the eye icon to show/hide, and Edit to change content.
         </p>
       </div>
