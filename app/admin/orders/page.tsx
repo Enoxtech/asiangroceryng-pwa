@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp, Phone, Mail, MapPin, MessageCircle } from 'luci
 const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
 
 const statusColors: Record<string, string> = {
+  awaiting_payment: 'bg-amber-500/15 text-amber-300',
   pending:    'bg-amber-500/15 text-amber-400',
   confirmed:  'bg-blue-400/15 text-blue-300',
   processing: 'bg-blue-500/15 text-blue-400',
@@ -17,7 +18,15 @@ const statusColors: Record<string, string> = {
   cancelled:  'bg-red-500/15 text-red-400',
 };
 
-const FILTERS = ['All', 'Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+const paymentStatusColors: Record<string, string> = {
+  pending: 'bg-amber-500/15 text-amber-300',
+  paid: 'bg-emerald-500/15 text-emerald-300',
+  failed: 'bg-red-500/15 text-red-300',
+  expired: 'bg-gray-500/15 text-gray-400',
+  refunded: 'bg-purple-500/15 text-purple-300',
+};
+
+const FILTERS = ['All', 'Awaiting Payment', 'Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
 function paymentLabel(pm: string) {
   const map: Record<string, string> = {
@@ -43,7 +52,7 @@ export default function AdminOrdersPage() {
 
   const filtered = filter === 'All'
     ? orders
-    : orders.filter((o) => o.status.toLowerCase() === filter.toLowerCase());
+    : orders.filter((o) => o.status.replace(/_/g, ' ').toLowerCase() === filter.toLowerCase());
 
   function handleStatusChange(id: string, status: string) {
     if (!status) return;
@@ -55,8 +64,6 @@ export default function AdminOrdersPage() {
   function toggleExpand(id: string) {
     setExpanded((prev) => (prev === id ? null : id));
   }
-
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '';
 
   return (
     <div className="space-y-6">
@@ -83,6 +90,8 @@ export default function AdminOrdersPage() {
       <div className="space-y-2">
         {filtered.map((order) => {
           const isOpen = expanded === order.id;
+          const paymentStatus = order.paymentStatus ?? (order.status === 'confirmed' ? 'paid' : 'pending');
+          const paymentVerified = paymentStatus === 'paid';
           return (
             <div key={order.id} className="rounded-2xl border overflow-hidden" style={{ background: '#1a1814', borderColor: isOpen ? 'rgba(196,30,58,0.4)' : 'rgba(255,255,255,0.06)' }}>
 
@@ -119,7 +128,11 @@ export default function AdminOrdersPage() {
 
                 {/* Status badge */}
                 <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold capitalize font-label ${statusColors[order.status] ?? ''}`}>
-                  {order.status}
+                  {order.status.replace(/_/g, ' ')}
+                </span>
+
+                <span className={`hidden sm:inline-flex shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold capitalize font-label ${paymentStatusColors[paymentStatus] ?? ''}`}>
+                  {paymentStatus}
                 </span>
 
                 {/* Date */}
@@ -169,8 +182,15 @@ export default function AdminOrdersPage() {
                         )}
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500 w-20 shrink-0 font-label">Payment</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-label font-bold">{paymentLabel(order.payment)}</span>
+                          <span className="text-xs text-gray-300 font-label">{paymentLabel(order.payment)}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-label font-bold capitalize ${paymentStatusColors[paymentStatus] ?? ''}`}>{paymentStatus}</span>
                         </div>
+                        {order.paidAt && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 w-20 shrink-0 font-label">Paid</span>
+                            <span className="text-xs text-gray-400 font-label">{formatDate(order.paidAt)}</span>
+                          </div>
+                        )}
                         {order.paymentRef && (
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500 w-20 shrink-0 font-label">Ref</span>
@@ -180,7 +200,7 @@ export default function AdminOrdersPage() {
                         {order.notes && (
                           <div className="flex items-start gap-2">
                             <span className="text-xs text-gray-500 w-20 shrink-0 font-label mt-0.5">Notes</span>
-                            <span className="text-sm text-amber-300 italic font-display">"{order.notes}"</span>
+                            <span className="text-sm text-amber-300 italic font-display">&quot;{order.notes}&quot;</span>
                           </div>
                         )}
                       </div>
@@ -245,6 +265,11 @@ export default function AdminOrdersPage() {
 
                   {/* Action row */}
                   <div className="flex flex-wrap items-center gap-3 pt-1">
+                    {order.payment === 'bank_transfer' && !paymentVerified && (
+                      <p className="w-full text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                        Fulfilment is locked until Paystack verifies this transfer.
+                      </p>
+                    )}
                     {/* WhatsApp customer button */}
                     <a
                       href={`https://wa.me/${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${order.customer}, your order ${order.id} from Asian Grocery Nigeria has been confirmed! We'll process it shortly.`)}`}
@@ -265,7 +290,7 @@ export default function AdminOrdersPage() {
                           style={{ background: '#0f0e0b', borderColor: 'rgba(255,255,255,0.08)' }}
                         >
                           <option value="" disabled>Update status…</option>
-                          {STATUS_OPTIONS.filter((s) => s !== order.status).map((s) => (
+                          {STATUS_OPTIONS.filter((s) => s !== order.status && (order.payment !== 'bank_transfer' || paymentVerified || s === 'cancelled')).map((s) => (
                             <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                           ))}
                         </select>

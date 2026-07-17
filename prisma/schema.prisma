@@ -56,29 +56,66 @@ model Category {
 }
 
 model Order {
-  id            String      @id
-  customer      String
-  phone         String
-  email         String?
-  subtotal      Float
-  deliveryFee   Float
-  discount      Float       @default(0)
-  tax           Float       @default(0)
-  couponCode    String?
-  total         Float
-  status        String      @default("pending")
-  area          String
-  address       String?
-  payment       String
-  paymentRef    String?
-  notes         String?
-  source        String      @default("checkout")
-  createdAt     DateTime    @default(now())
-  items         OrderItem[]
-  customerId    String?
-  customerAccount Customer? @relation(fields: [customerId], references: [id])
+  id                String           @id
+  customer          String
+  phone             String
+  email             String?
+  subtotal          Float
+  deliveryFee       Float
+  discount          Float            @default(0)
+  tax               Float            @default(0)
+  couponCode        String?
+  total             Float
+  status            String           @default("pending")
+  area              String
+  address           String?
+  payment           String
+  paymentRef        String?
+  paymentStatus     PaymentStatus    @default(pending)
+  paymentProvider   String?
+  paidAt            DateTime?
+  paymentExpiresAt  DateTime?
+  paymentNotifiedAt DateTime?
+  notes             String?
+  source            String           @default("checkout")
+  createdAt         DateTime         @default(now())
+  items             OrderItem[]
+  customerId        String?
+  customerAccount   Customer?        @relation(fields: [customerId], references: [id])
+  paymentAttempts   PaymentAttempt[]
 
   @@index([customerId])
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  expired
+  refunded
+}
+
+model PaymentAttempt {
+  id                    String        @id @default(cuid())
+  orderId               String
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider              String
+  reference             String        @unique
+  amountKobo            Int
+  currency              String        @default("NGN")
+  status                PaymentStatus @default(pending)
+  accountNumber         String?
+  accountName           String?
+  bankName              String?
+  expiresAt             DateTime?
+  paidAt                DateTime?
+  providerTransactionId String?
+  lastCheckedAt         DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status, expiresAt])
 }
 
 model OrderItem {
@@ -157,30 +194,30 @@ model Customer {
 }
 
 model IntegrationSettings {
-  id                   String @id @default("singleton")
-  paystackPublicKey    String @default("")
-  paystackSecretKey    String @default("")
-  flutterwavePublicKey String @default("")
-  flutterwaveSecretKey String @default("")
-  gmailUser            String @default("")
-  gmailAppPassword     String @default("")
-  adminEmail           String @default("")
-  resendApiKey         String @default("")
-  resendFromEmail      String @default("")
-  vatPercent           Float  @default(0)
-  whatsappPhoneNumberId      String @default("")
-  whatsappAccessToken        String @default("")
-  whatsappBusinessAccountId  String @default("")
-  whatsappOrderTemplateName  String @default("")
-  whatsappTemplateLanguage   String @default("en_US")
-  storeName              String @default("Asian Grocery Nigeria")
-  tagline                String @default("Exploring Asia Through Food")
-  storeEmail             String @default("hello@asiangroceryng.com")
-  storeAddress           String @default("Lagos, Nigeria")
-  deliveryFreeThreshold  Float  @default(15000)
-  businessHoursWeekdays  String @default("8:00 AM – 7:00 PM WAT")
-  businessHoursSaturday  String @default("9:00 AM – 5:00 PM WAT")
-  businessHoursSunday    String @default("Closed")
+  id                        String @id @default("singleton")
+  paystackPublicKey         String @default("")
+  paystackSecretKey         String @default("")
+  flutterwavePublicKey      String @default("")
+  flutterwaveSecretKey      String @default("")
+  gmailUser                 String @default("")
+  gmailAppPassword          String @default("")
+  adminEmail                String @default("")
+  resendApiKey              String @default("")
+  resendFromEmail           String @default("")
+  vatPercent                Float  @default(0)
+  whatsappPhoneNumberId     String @default("")
+  whatsappAccessToken       String @default("")
+  whatsappBusinessAccountId String @default("")
+  whatsappOrderTemplateName String @default("")
+  whatsappTemplateLanguage  String @default("en_US")
+  storeName                 String @default("Asian Grocery Nigeria")
+  tagline                   String @default("Exploring Asia Through Food")
+  storeEmail                String @default("hello@asiangroceryng.com")
+  storeAddress              String @default("Lagos, Nigeria")
+  deliveryFreeThreshold     Float  @default(15000)
+  businessHoursWeekdays     String @default("8:00 AM – 7:00 PM WAT")
+  businessHoursSaturday     String @default("9:00 AM – 5:00 PM WAT")
+  businessHoursSunday       String @default("Closed")
 }
 
 model DeliveryArea {
@@ -193,16 +230,16 @@ model DeliveryArea {
 }
 
 model Coupon {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  type        String
-  value       Float
-  minOrder    Float?
-  active      Boolean   @default(true)
-  expiresAt   DateTime?
-  usageLimit  Int?
-  usageCount  Int       @default(0)
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(cuid())
+  code       String    @unique
+  type       String
+  value      Float
+  minOrder   Float?
+  active     Boolean   @default(true)
+  expiresAt  DateTime?
+  usageLimit Int?
+  usageCount Int       @default(0)
+  createdAt  DateTime  @default(now())
 }
 
 model AuditLog {

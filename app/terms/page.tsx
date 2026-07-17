@@ -11,7 +11,7 @@ const sections = [
     title: '2. Orders & Payment',
     body: [
       'All orders are subject to product availability. We reserve the right to limit quantities, refuse, or cancel any order at our discretion — for example, in cases of suspected fraud or pricing errors.',
-      'We currently accept payment via Bank Transfer and Pay on Delivery (Lagos only). Card payments via Paystack and Flutterwave will be available soon. For bank transfers, your order is confirmed once we receive and verify proof of payment sent via WhatsApp.',
+      'We accept secure Paystack payments and instant bank transfers. Bank-transfer orders are confirmed only after Paystack automatically verifies that the exact order amount has been received; an unpaid or expired transfer does not create a confirmed order.',
       'Prices are listed in Nigerian Naira (₦) and may change without prior notice. The price charged will be the price displayed at the time your order is placed.',
     ],
   },
@@ -76,7 +76,7 @@ export default function TermsOfServicePage() {
       <div className="space-y-2">
         <p className="text-xs font-label uppercase tracking-widest text-[var(--accent)]">Legal</p>
         <h1 className="text-3xl font-bold text-[var(--text-primary)] font-display">Terms of Service</h1>
-        <p className="text-sm text-[var(--text-muted)] font-display">Effective Date: 22 June 2026</p>
+        <p className="text-sm text-[var(--text-muted)] font-display">Effective Date: 17 July 2026</p>
         <p className="text-[var(--text-secondary)] leading-relaxed font-body">
           These Terms of Service (&quot;Terms&quot;) govern your use of the Asian Grocery Nigeria website and app, and your
           purchase of products from us. Please read them carefully before placing an order.

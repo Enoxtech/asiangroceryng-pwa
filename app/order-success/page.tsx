@@ -18,8 +18,8 @@ function OrderSuccessContent() {
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Placed! 🎉</h1>
-      <p className="text-gray-500 mb-2">Thank you for shopping with Asian Grocery Nigeria.</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Verified</h1>
+      <p className="text-gray-500 mb-2">Your order is confirmed. Thank you for shopping with Asian Grocery Nigeria.</p>
       <p className="text-sm text-gray-400 mb-6">Order ID: <span className="font-mono font-bold text-gray-700">{orderId}</span></p>
 
       <div className="bg-gray-50 rounded-2xl p-5 mb-8 text-left space-y-3">

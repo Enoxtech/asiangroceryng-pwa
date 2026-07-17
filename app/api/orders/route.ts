@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 import { getCustomerSession } from '@/lib/customerAuth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getClientIp } from '@/lib/audit';
 import { verifyPaystackTransaction } from '@/lib/paystack';
+import { calculateCheckout, checkoutRequestSchema, CheckoutError } from '@/lib/checkout';
 
 export async function GET(req: NextRequest) {
   const { response } = await requireRole(req, ['super_admin', 'support', 'product_manager']);
@@ -17,78 +19,103 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(orders);
 }
 
-// Intentionally public — this is how customers place real orders at checkout.
+// Public checkout endpoint for completed Paystack popup payments. Bank-transfer
+// orders use the dedicated verified transfer endpoint and cannot bypass it here.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const ok = await checkRateLimit(`order:${ip}`, 8, 10 * 60 * 1000);
-  if (!ok) {
+  const allowed = await checkRateLimit(`order:${ip}`, 8, 10 * 60 * 1000);
+  if (!allowed) {
     return NextResponse.json({ error: 'Too many orders submitted. Please try again later.' }, { status: 429 });
   }
 
-  const body = await req.json();
-  const customerSession = await getCustomerSession(req);
-
-  // Never trust a client-supplied "confirmed" status for card payments —
-  // re-verify the Paystack reference server-side before honoring it.
-  let status = 'pending';
-  let paymentRef: string | undefined;
-  if (body.payment === 'paystack') {
-    if (typeof body.paymentRef !== 'string' || !body.paymentRef) {
-      return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 });
+  try {
+    const body = await req.json();
+    if (body.payment === 'bank_transfer') {
+      return NextResponse.json({ error: 'Bank transfers must use the verified transfer checkout.' }, { status: 400 });
     }
-    try {
-      const data = await verifyPaystackTransaction(body.paymentRef);
-      if (!data || data.status !== 'success' || data.amount !== Math.round(body.total * 100)) {
-        return NextResponse.json({ error: 'Payment could not be verified' }, { status: 400 });
-      }
-      status = 'confirmed';
-      paymentRef = body.paymentRef;
-    } catch {
-      return NextResponse.json({ error: 'Payment could not be verified' }, { status: 400 });
+    if (body.payment !== 'paystack') {
+      return NextResponse.json({ error: 'Unsupported payment method.' }, { status: 400 });
     }
-  } else {
-    status = body.status ?? 'pending';
-  }
+    if (typeof body.id !== 'string' || !/^AGNG-[A-Za-z0-9-]+$/.test(body.id)) {
+      return NextResponse.json({ error: 'Invalid order ID.' }, { status: 400 });
+    }
+    if (typeof body.paymentRef !== 'string' || body.paymentRef !== body.id) {
+      return NextResponse.json({ error: 'Invalid payment reference.' }, { status: 400 });
+    }
 
-  const order = await prisma.order.create({
-    data: {
-      id: body.id,
+    const checkoutInput = checkoutRequestSchema.parse({
       customer: body.customer,
-      phone: body.phone,
       email: body.email,
-      customerId: customerSession?.id,
-      subtotal: body.subtotal,
-      deliveryFee: body.deliveryFee,
-      discount: body.discount ?? 0,
-      tax: body.tax ?? 0,
-      couponCode: body.couponCode || undefined,
-      total: body.total,
-      status,
-      paymentRef,
-      area: body.area,
+      phone: body.phone,
       address: body.address,
-      payment: body.payment,
       notes: body.notes,
-      source: body.source ?? 'checkout',
-      items: {
-        create: (body.items ?? []).map((it: { name: string; quantity: number; price: number; productId?: string; categorySlug?: string }) => ({
-          name: it.name,
-          quantity: it.quantity,
-          price: it.price,
-          productId: it.productId,
-          categorySlug: it.categorySlug,
-        })),
-      },
-    },
-    include: { items: true },
-  });
-
-  if (body.couponCode) {
-    await prisma.coupon.updateMany({
-      where: { code: body.couponCode },
-      data: { usageCount: { increment: 1 } },
+      deliveryMethod: body.deliveryMethod,
+      deliveryAreaId: body.deliveryAreaId,
+      couponCode: body.couponCode,
+      items: (body.items ?? []).map((item: { productId?: string; quantity?: number }) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      })),
     });
-  }
+    const checkout = await calculateCheckout(checkoutInput);
+    const payment = await verifyPaystackTransaction(body.paymentRef);
+    if (!payment
+      || payment.status !== 'success'
+      || payment.reference !== body.paymentRef
+      || payment.amount !== Math.round(checkout.total * 100)
+      || payment.currency !== 'NGN'
+      || payment.customer?.email?.toLowerCase() !== checkoutInput.email.toLowerCase()) {
+      return NextResponse.json({ error: 'Payment could not be verified.' }, { status: 400 });
+    }
 
-  return NextResponse.json(order, { status: 201 });
+    const customerSession = await getCustomerSession(req);
+    const paidAt = payment.paid_at ? new Date(payment.paid_at) : new Date();
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          id: body.id,
+          customer: checkoutInput.customer,
+          phone: checkoutInput.phone,
+          email: checkoutInput.email,
+          customerId: customerSession?.id,
+          subtotal: checkout.subtotal,
+          deliveryFee: checkout.deliveryFee,
+          discount: checkout.discount,
+          tax: checkout.tax,
+          couponCode: checkout.couponCode,
+          total: checkout.total,
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          paymentProvider: 'paystack',
+          paidAt,
+          paymentRef: body.paymentRef,
+          area: checkout.area,
+          address: checkout.address,
+          payment: 'paystack',
+          notes: checkoutInput.notes || undefined,
+          source: 'checkout',
+          items: { create: checkout.items },
+        },
+        include: { items: true },
+      });
+      if (checkout.couponCode) {
+        await tx.coupon.updateMany({
+          where: { code: checkout.couponCode },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
+      return created;
+    });
+
+    return NextResponse.json(order, { status: 201 });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Invalid checkout details.' }, { status: 400 });
+    }
+    if (error instanceof CheckoutError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error('[orders-create]', error);
+    return NextResponse.json({ error: 'Could not create order.' }, { status: 500 });
+  }
 }

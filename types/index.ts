@@ -1,7 +1,7 @@
 export type StorageType = 'dry' | 'chilled' | 'frozen';
 export type SpiceLevel = 'none' | 'mild' | 'medium' | 'hot' | 'very-hot';
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
+export type OrderStatus = 'awaiting_payment' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
 export type PaymentMethod = 'paystack' | 'flutterwave' | 'bank_transfer' | 'pay_on_delivery';
 export type CouponType = 'percentage' | 'fixed';
 export type AdminRole = 'super_admin' | 'admin' | 'staff';

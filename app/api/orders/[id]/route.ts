@@ -9,6 +9,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await req.json();
+  const current = await prisma.order.findUnique({ where: { id } });
+  if (!current) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+  if (current.payment === 'bank_transfer'
+    && current.paymentStatus !== 'paid'
+    && body.status !== 'cancelled') {
+    return NextResponse.json({ error: 'This bank-transfer order cannot be processed until payment is verified.' }, { status: 409 });
+  }
   const order = await prisma.order.update({
     where: { id },
     data: { status: body.status },

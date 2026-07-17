@@ -57,7 +57,7 @@ function paymentLabel(pm: string) {
   const map: Record<string, string> = {
     paystack: 'Paystack (Card)',
     flutterwave: 'Flutterwave (Card)',
-    bank_transfer: 'Bank Transfer',
+    bank_transfer: 'Verified Bank Transfer',
     pay_on_delivery: 'Pay on Delivery',
   };
   return map[pm] ?? pm.replace(/_/g, ' ');
@@ -362,16 +362,6 @@ function buildCustomerEmailHtml(o: OrderEmailPayload): string {
             </table>
           </td>
         </tr>
-
-        ${o.paymentMethod === 'bank_transfer' ? `
-        <!-- Bank transfer reminder -->
-        <tr>
-          <td style="padding:24px 32px 0;">
-            <p style="margin:0;padding:14px 16px;border-radius:12px;background:#eef4ff;border:1px solid #cfe0fb;font-size:13px;color:#2d4d8a;">
-              💳 &nbsp;Remember to complete your bank transfer and send proof of payment via WhatsApp so we can process your order.
-            </p>
-          </td>
-        </tr>` : ''}
 
         <!-- CTA -->
         <tr>

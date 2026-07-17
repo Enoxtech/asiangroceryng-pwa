@@ -27,6 +27,12 @@ export interface AdminOrder {
   date: string;
   payment: string;
   paymentRef?: string;
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
+  paymentProvider?: string;
+  paidAt?: string;
+  paymentExpiresAt?: string;
+  deliveryMethod?: 'ship' | 'pickup';
+  deliveryAreaId?: string;
   notes?: string;
 }
 

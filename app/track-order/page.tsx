@@ -10,6 +10,7 @@ interface OrderItem { id: string; name: string; quantity: number; price: number 
 interface TrackedOrder {
   id: string;
   status: string;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
   total: number;
   area: string;
   address: string | null;
@@ -22,6 +23,9 @@ const STEP_ORDER = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'
 function buildSteps(status: string) {
   if (status === 'cancelled') {
     return [{ id: 'cancelled', label: 'Order Cancelled', done: true, cancelled: true }];
+  }
+  if (status === 'awaiting_payment') {
+    return [{ id: 'awaiting_payment', label: 'Waiting for Payment', done: true, active: true }];
   }
   const currentIndex = STEP_ORDER.indexOf(status);
   const labels: Record<string, string> = {
@@ -116,6 +120,9 @@ export default function TrackOrderPage() {
             <p className="text-xs text-green-600 font-semibold mb-1">Order ID</p>
             <p className="font-mono font-bold text-gray-900">{result.id}</p>
             <p className="text-sm text-green-700 mt-1">Total: <strong>{formatPrice(result.total)}</strong> · {result.area}</p>
+            <p className={cn('text-xs font-semibold mt-2 capitalize', result.paymentStatus === 'paid' ? 'text-green-700' : 'text-amber-700')}>
+              Payment: {result.paymentStatus}
+            </p>
           </div>
 
           {/* Tracking stepper */}

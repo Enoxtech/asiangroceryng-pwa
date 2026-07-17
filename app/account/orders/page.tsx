@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Package, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
-import { formatPrice, formatDate } from '@/lib/utils';
+import { formatPrice, formatDate, cn } from '@/lib/utils';
 
 interface OrderItem {
   id: string;
@@ -18,6 +18,7 @@ interface MyOrder {
   id: string;
   total: number;
   status: string;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
   area: string;
   createdAt: string;
   items: OrderItem[];
@@ -28,6 +29,7 @@ const statusMap: Record<string, 'success' | 'warning' | 'default'> = {
   shipped: 'warning',
   pending: 'default',
   processing: 'default',
+  awaiting_payment: 'warning',
 };
 
 export default function OrdersPage() {
@@ -36,8 +38,9 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<MyOrder[] | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    const frame = window.requestAnimationFrame(() => setMounted(true));
     hydrate();
+    return () => window.cancelAnimationFrame(frame);
   }, [hydrate]);
 
   useEffect(() => {
@@ -98,9 +101,14 @@ export default function OrdersPage() {
                     <p className="font-bold text-[var(--text-primary)] font-label text-sm">{order.id}</p>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5 font-display">{formatDate(order.createdAt)} · {order.area}</p>
                   </div>
-                  <Badge variant={statusMap[order.status] ?? 'default'} className="capitalize text-[10px]">
-                    {order.status}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant={statusMap[order.status] ?? 'default'} className="capitalize text-[10px]">
+                      {order.status.replace(/_/g, ' ')}
+                    </Badge>
+                    <span className={cn('text-[10px] font-semibold capitalize', order.paymentStatus === 'paid' ? 'text-green-600' : 'text-amber-600')}>
+                      Payment: {order.paymentStatus}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)]">
                   <p className="text-sm text-[var(--text-secondary)] font-display">{itemCount} {itemCount === 1 ? 'item' : 'items'}</p>
