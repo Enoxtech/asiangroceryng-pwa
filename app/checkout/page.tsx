@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { CreditCard, Building2, Tag, Check, X, Truck, Store, MapPin, Clock, UserPlus, Eye, EyeOff, Copy, ShieldCheck, Loader2, RefreshCw } from 'lucide-react';
+import { CreditCard, Building2, Tag, Check, X, Truck, Store, MapPin, Clock, UserPlus, Eye, EyeOff, Copy, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildCustomerConfirmation, openWhatsApp, ADMIN_WHATSAPP, buildAdminAlert } from '@/lib/whatsapp';
 import { useUserNotificationStore } from '@/store/userNotificationStore';
@@ -26,6 +26,7 @@ interface PaystackPopSetupOptions {
   amount: number;
   currency: string;
   ref: string;
+  channels: Array<'card' | 'ussd'>;
   callback: (response: { reference: string }) => void;
   onClose: () => void;
 }
@@ -36,6 +37,10 @@ declare global {
 }
 
 let paystackScriptPromise: Promise<void> | null = null;
+
+function createClientOrderId(): string {
+  return `AGNG-${Date.now().toString().slice(-8)}`;
+}
 
 function loadPaystackScript(): Promise<void> {
   if (window.PaystackPop) return Promise.resolve();
@@ -80,27 +85,28 @@ interface AppliedCoupon {
   minOrder?: number | null;
 }
 
-interface BankTransferSession {
-  orderId: string;
-  reference: string;
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'expired';
+interface BankDetails {
   bankName: string;
   accountName: string;
   accountNumber: string;
-  expiresAt: string;
-  amount: number;
+  bankBranch: string;
+  note: string;
 }
 
-const TRANSFER_SESSION_KEY = 'agng-bank-transfer-session';
+interface ManualTransferOrder {
+  orderId: string;
+  amount: number;
+  bankDetails: BankDetails;
+}
 
-function loadStoredTransferSession(): BankTransferSession | null {
+const MANUAL_TRANSFER_SESSION_KEY = 'agng-manual-transfer-order';
+
+function loadStoredManualTransferOrder(): ManualTransferOrder | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(TRANSFER_SESSION_KEY);
-    if (!raw) return null;
-    const session = JSON.parse(raw) as BankTransferSession;
-    if (!session.reference || !session.expiresAt) return null;
-    return session;
+    const stored = JSON.parse(window.sessionStorage.getItem(MANUAL_TRANSFER_SESSION_KEY) || 'null') as ManualTransferOrder | null;
+    if (!stored?.orderId || !stored.bankDetails?.accountNumber) return null;
+    return stored;
   } catch {
     return null;
   }
@@ -134,10 +140,9 @@ export default function CheckoutPage() {
   const [paystack, setPaystack] = useState<{ publicKey: string; enabled: boolean }>({ publicKey: '', enabled: false });
   const [vatPercent, setVatPercent] = useState(0);
   const [paymentError, setPaymentError] = useState('');
-  const [bankTransferSession, setBankTransferSession] = useState<BankTransferSession | null>(loadStoredTransferSession);
+  const [bankDetails, setBankDetails] = useState<BankDetails>({ bankName: '', accountName: '', accountNumber: '', bankBranch: '', note: '' });
+  const [manualTransferOrder, setManualTransferOrder] = useState<ManualTransferOrder | null>(loadStoredManualTransferOrder);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-  const paymentCompletedRef = useRef(false);
 
   const selectedArea = deliveryAreas.find((a) => a.id === selectedAreaId) ?? deliveryAreas[0];
 
@@ -158,6 +163,12 @@ export default function CheckoutPage() {
         if (areas.length > 0) setSelectedAreaId(areas[0].id);
       })
       .catch(() => {});
+    fetch('/api/bank-details')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((details: BankDetails | null) => {
+        if (details) setBankDetails(details);
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
     if (!user) return;
@@ -167,27 +178,10 @@ export default function CheckoutPage() {
     return () => window.cancelAnimationFrame(frame);
   }, [user]);
   useEffect(() => {
-    if (bankTransferSession) {
-      window.sessionStorage.setItem(TRANSFER_SESSION_KEY, JSON.stringify(bankTransferSession));
-    } else {
-      window.sessionStorage.removeItem(TRANSFER_SESSION_KEY);
+    if (manualTransferOrder) {
+      window.sessionStorage.setItem(MANUAL_TRANSFER_SESSION_KEY, JSON.stringify(manualTransferOrder));
     }
-  }, [bankTransferSession]);
-  useEffect(() => {
-    if (!bankTransferSession || bankTransferSession.paymentStatus !== 'pending') return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [bankTransferSession]);
-  useEffect(() => {
-    if (!bankTransferSession || bankTransferSession.paymentStatus !== 'pending') return;
-    const poll = window.setInterval(() => {
-      void checkBankTransferStatus(false);
-    }, 5000);
-    void checkBankTransferStatus(false);
-    return () => window.clearInterval(poll);
-    // The active reference is the only dependency that should restart polling.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bankTransferSession?.reference, bankTransferSession?.paymentStatus]);
+  }, [manualTransferOrder]);
 
   async function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
@@ -225,10 +219,6 @@ export default function CheckoutPage() {
   const deliveryFee = deliveryMethod === 'pickup' ? 0 : (appliedCoupon?.type === 'shipping' ? 0 : (selectedArea?.fee ?? 0));
   const tax = Math.round(subtotal * vatPercent / 100);
   const total = subtotal + deliveryFee + tax - (appliedCoupon?.type !== 'shipping' ? discount : 0);
-  const transferSecondsRemaining = bankTransferSession
-    ? Math.max(0, Math.floor((new Date(bankTransferSession.expiresAt).getTime() - now) / 1000))
-    : 0;
-  const transferTimeRemaining = `${String(Math.floor(transferSecondsRemaining / 60)).padStart(2, '0')}:${String(transferSecondsRemaining % 60).padStart(2, '0')}`;
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -278,88 +268,53 @@ export default function CheckoutPage() {
     }
   }
 
-  function buildCheckoutPayload() {
-    return {
-      customer: form.name,
-      email: form.email,
-      phone: form.phone,
-      address: deliveryMethod === 'pickup' ? 'Store F11, Ikeja Town-Square' : form.address,
-      notes: form.notes,
-      deliveryMethod,
-      deliveryAreaId: deliveryMethod === 'ship' ? selectedAreaId : undefined,
-      couponCode: appliedCoupon?.code,
-      items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
-    };
-  }
-
-  function completeVerifiedBankTransfer(orderId: string) {
-    if (paymentCompletedRef.current) return;
-    paymentCompletedRef.current = true;
-    window.sessionStorage.removeItem(TRANSFER_SESSION_KEY);
-    addUserNotif({
-      type: 'order',
-      title: `Payment verified for ${orderId}`,
-      body: `Your bank transfer of ₦${(bankTransferSession?.amount ?? total).toLocaleString()} was received and your order is confirmed.`,
-      link: '/orders',
-    });
-    addAdminNotif({
-      type: 'order',
-      title: 'Bank Transfer Verified',
-      message: `Order ${orderId} has been paid and is ready to process.`,
-      actionUrl: '/admin/orders',
-    });
-    clearCart();
-    router.push(`/order-success?order=${encodeURIComponent(orderId)}`);
-  }
-
-  async function checkBankTransferStatus(showError = true) {
-    if (!bankTransferSession?.reference || paymentCompletedRef.current) return;
-    if (showError) setLoading(true);
-    try {
-      const res = await fetch(`/api/payments/bank-transfer/status?reference=${encodeURIComponent(bankTransferSession.reference)}`, {
-        cache: 'no-store',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not verify payment.');
-      const nextStatus = data.paymentStatus as BankTransferSession['paymentStatus'];
-      setBankTransferSession((session) => session ? { ...session, paymentStatus: nextStatus } : session);
-      if (nextStatus === 'paid') completeVerifiedBankTransfer(data.orderId);
-      if (nextStatus === 'failed') setPaymentError('The transfer was rejected. Please contact support before trying again.');
-      if (nextStatus === 'expired') setPaymentError('This transfer account has expired. Generate a new account to continue.');
-    } catch (error) {
-      if (showError) setPaymentError(error instanceof Error ? error.message : 'Could not verify payment.');
-    } finally {
-      if (showError) setLoading(false);
-    }
-  }
-
-  async function handleBankTransferCheckout() {
-    if (bankTransferSession?.paymentStatus === 'pending') {
-      await checkBankTransferStatus(true);
-      return;
-    }
-    if (!paystack.enabled) {
-      setPaymentError('Instant bank transfer is temporarily unavailable. Please use Paystack checkout.');
-      return;
-    }
-
+  async function handleManualBankTransfer() {
     setLoading(true);
     setPaymentError('');
     setAccountError('');
-    paymentCompletedRef.current = false;
     try {
       await maybeCreateAccount();
-      const res = await fetch('/api/payments/bank-transfer/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildCheckoutPayload()),
+      const draftId = createClientOrderId();
+      const orderDetails = buildOrderDetails(draftId);
+      const created = await addOrder({
+        id: draftId,
+        customer: orderDetails.customer,
+        phone: orderDetails.phone,
+        email: orderDetails.email || undefined,
+        subtotal: orderDetails.subtotal,
+        deliveryFee: orderDetails.deliveryFee,
+        discount: orderDetails.discount,
+        tax: orderDetails.tax,
+        couponCode: appliedCoupon?.code,
+        total: orderDetails.total,
+        status: 'awaiting_payment',
+        items: orderDetails.items,
+        area: orderDetails.area,
+        address: orderDetails.address,
+        date: new Date().toISOString().slice(0, 10),
+        payment: 'bank_transfer',
+        paymentStatus: 'pending',
+        paymentProvider: 'manual',
+        deliveryMethod,
+        deliveryAreaId: deliveryMethod === 'ship' ? selectedAreaId : undefined,
+        notes: form.notes || undefined,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not create a transfer account.');
-      setBankTransferSession(data as BankTransferSession);
-      setNow(Date.now());
+      const details = created.bankDetails ?? bankDetails;
+      setManualTransferOrder({ orderId: created.id, amount: created.total, bankDetails: details });
+      addUserNotif({
+        type: 'order',
+        title: `Order ${created.id} awaiting payment`,
+        body: `Transfer ${formatPrice(created.total)} to the displayed Providus account. The admin will confirm your payment.`,
+        link: '/orders',
+      });
+      addAdminNotif({
+        type: 'order',
+        title: 'Bank transfer awaiting confirmation',
+        message: `Order ${created.id} is waiting for manual payment confirmation.`,
+        actionUrl: '/admin/orders',
+      });
     } catch (error) {
-      setPaymentError(error instanceof Error ? error.message : 'Could not create a transfer account.');
+      setPaymentError(error instanceof Error ? error.message : 'Could not place the bank-transfer order.');
     } finally {
       setLoading(false);
     }
@@ -369,6 +324,15 @@ export default function CheckoutPage() {
     await navigator.clipboard.writeText(value);
     setCopiedField(field);
     window.setTimeout(() => setCopiedField(null), 1500);
+  }
+
+  function finishManualTransferInstructions() {
+    if (!manualTransferOrder) return;
+    const orderId = manualTransferOrder.orderId;
+    window.sessionStorage.removeItem(MANUAL_TRANSFER_SESSION_KEY);
+    setManualTransferOrder(null);
+    clearCart();
+    router.push(`/order-success?order=${encodeURIComponent(orderId)}&payment=pending`);
   }
 
   async function finalizeOrder(orderId: string, paymentRef?: string) {
@@ -448,7 +412,7 @@ export default function CheckoutPage() {
       await handlePaystackCheckout();
       return;
     }
-    await handleBankTransferCheckout();
+    await handleManualBankTransfer();
   }
 
   async function handlePaystackCheckout() {
@@ -466,7 +430,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    const orderId = `AGNG-${Date.now().toString().slice(-6)}`;
+    const orderId = createClientOrderId();
 
     if (!window.PaystackPop) {
       setLoading(false);
@@ -480,6 +444,7 @@ export default function CheckoutPage() {
       amount: Math.round(total * 100),
       currency: 'NGN',
       ref: orderId,
+      channels: ['card', 'ussd'],
       callback: (response) => {
         finalizeOrder(orderId, response.reference);
       },
@@ -709,13 +674,11 @@ export default function CheckoutPage() {
         </form>
       ) : (
         <form onSubmit={handlePlaceOrder} className="space-y-4">
-          <h2 className="font-bold text-gray-900 text-lg">
-            {bankTransferSession ? 'Complete Bank Transfer' : 'Choose Payment Method'}
-          </h2>
+          <h2 className="font-bold text-gray-900 text-lg">Choose Payment Method</h2>
 
-          {!bankTransferSession && [
+          {[
             { id: 'paystack', label: 'Paystack', desc: 'Debit/credit card, USSD and other secure methods', icon: <CreditCard className="h-5 w-5" />, badge: paystack.enabled ? null : 'Coming soon' },
-            { id: 'bank_transfer', label: 'Instant Bank Transfer', desc: 'Unique account with automatic payment verification', icon: <Building2 className="h-5 w-5" />, badge: paystack.enabled ? 'Verified' : 'Unavailable' },
+            { id: 'bank_transfer', label: 'Bank Transfer', desc: 'Transfer to our Providus Bank account', icon: <Building2 className="h-5 w-5" />, badge: null },
           ].map(({ id, label, desc, icon, badge }) => (
             <label
               key={id}
@@ -739,67 +702,15 @@ export default function CheckoutPage() {
             </label>
           ))}
 
-          {paymentMethod === 'bank_transfer' && !bankTransferSession && (
+          {paymentMethod === 'bank_transfer' && (
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm">
               <div className="flex items-start gap-3">
                 <ShieldCheck className="h-5 w-5 text-blue-700 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-blue-900">Secure, verified transfer</p>
-                  <p className="text-blue-700 text-xs mt-1 leading-5">We will generate a unique Paystack account for this order. Your order is confirmed only after the exact payment is received and verified.</p>
+                  <p className="font-bold text-blue-900">Manual bank transfer</p>
+                  <p className="text-blue-700 text-xs mt-1 leading-5">Place your order to see our Providus account details. Your order will remain awaiting payment until an admin confirms the transfer.</p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {bankTransferSession && (
-            <div className="border-2 border-blue-200 bg-blue-50 rounded-xl p-4 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  {bankTransferSession.paymentStatus === 'pending'
-                    ? <Loader2 className="h-5 w-5 text-blue-700 animate-spin shrink-0" />
-                    : <ShieldCheck className="h-5 w-5 text-green-600 shrink-0" />}
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-blue-950">{bankTransferSession.paymentStatus === 'pending' ? 'Waiting for payment' : `Payment ${bankTransferSession.paymentStatus}`}</p>
-                    <p className="text-[11px] text-blue-600 font-mono truncate">{bankTransferSession.orderId}</p>
-                  </div>
-                </div>
-                {bankTransferSession.paymentStatus === 'pending' && (
-                  <span className={cn('font-mono text-sm font-bold shrink-0', transferSecondsRemaining < 300 ? 'text-red-600' : 'text-blue-800')}>
-                    {transferTimeRemaining}
-                  </span>
-                )}
-              </div>
-
-              <div className="bg-white border border-blue-100 rounded-lg overflow-hidden">
-                <div className="px-3 py-2.5 border-b border-blue-100">
-                  <p className="text-[10px] uppercase text-gray-400 font-semibold">Bank</p>
-                  <p className="text-sm font-bold text-gray-900">{bankTransferSession.bankName}</p>
-                </div>
-                <div className="px-3 py-2.5 border-b border-blue-100 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase text-gray-400 font-semibold">Account number</p>
-                    <p className="text-xl font-bold tracking-wider text-gray-900 font-mono">{bankTransferSession.accountNumber}</p>
-                  </div>
-                  <button type="button" title="Copy account number" aria-label="Copy account number" onClick={() => copyTransferValue('account', bankTransferSession.accountNumber)} className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
-                    {copiedField === 'account' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                  </button>
-                </div>
-                <div className="px-3 py-2.5 border-b border-blue-100">
-                  <p className="text-[10px] uppercase text-gray-400 font-semibold">Account name</p>
-                  <p className="text-sm font-semibold text-gray-900 break-words">{bankTransferSession.accountName}</p>
-                </div>
-                <div className="px-3 py-2.5 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] uppercase text-gray-400 font-semibold">Transfer exactly</p>
-                    <p className="text-xl font-bold text-brand-red">{formatPrice(bankTransferSession.amount)}</p>
-                  </div>
-                  <button type="button" title="Copy amount" aria-label="Copy transfer amount" onClick={() => copyTransferValue('amount', String(bankTransferSession.amount))} className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
-                    {copiedField === 'amount' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-xs text-blue-700 leading-5">Use this account only for this order and transfer the exact amount before it expires. Verification is automatic; you do not need to upload a receipt.</p>
             </div>
           )}
 
@@ -828,28 +739,94 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {bankTransferSession ? (
-              bankTransferSession.paymentStatus === 'pending' ? (
-                <Button type="button" size="lg" loading={loading} className="w-full" onClick={() => checkBankTransferStatus(true)}>
-                  <RefreshCw className="h-4 w-4" /> I have paid - Verify now
-                </Button>
-              ) : (
-                <Button type="button" size="lg" className="w-full" onClick={() => { setBankTransferSession(null); setPaymentError(''); }}>
-                  Generate a new transfer account
-                </Button>
-              )
-            ) : (
-              <Button type="submit" size="lg" loading={loading} className="w-full" disabled={!paystack.enabled}>
-                {!paystack.enabled ? 'Payment Temporarily Unavailable' : paymentMethod === 'paystack' ? `Pay with Paystack · ${formatPrice(total)}` : `Generate Transfer Account · ${formatPrice(total)}`}
-              </Button>
-            )}
-            {!bankTransferSession && (
-              <button type="button" onClick={() => setStep('details')} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                ← Back to details
-              </button>
-            )}
+            <Button type="submit" size="lg" loading={loading} className="w-full" disabled={paymentMethod === 'paystack' && !paystack.enabled}>
+              {paymentMethod === 'paystack' && !paystack.enabled
+                ? 'Coming Soon'
+                : paymentMethod === 'paystack'
+                  ? `Pay with Paystack · ${formatPrice(total)}`
+                  : `Place Order · ${formatPrice(total)}`}
+            </Button>
+            <button type="button" onClick={() => setStep('details')} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+              ← Back to details
+            </button>
           </div>
         </form>
+      )}
+
+      {manualTransferOrder && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
+          <div className="w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-t-xl sm:rounded-xl shadow-2xl">
+            <div className="bg-blue-950 px-5 py-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="transfer-title" className="text-base font-bold">Order placed - payment pending</h2>
+                  <p className="text-xs text-blue-200 font-mono truncate mt-0.5">{manualTransferOrder.orderId}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-gray-600 leading-6">
+                Transfer the exact amount to the account below. Your order will be confirmed after the admin verifies that payment was received.
+              </p>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-[10px] uppercase text-gray-400 font-semibold">Bank</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    {manualTransferOrder.bankDetails.bankName}
+                    {manualTransferOrder.bankDetails.bankBranch ? ` (${manualTransferOrder.bankDetails.bankBranch})` : ''}
+                  </p>
+                </div>
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase text-gray-400 font-semibold">Account number</p>
+                    <p className="text-xl font-bold tracking-wider text-gray-900 font-mono break-all">{manualTransferOrder.bankDetails.accountNumber}</p>
+                  </div>
+                  <button type="button" title="Copy account number" aria-label="Copy account number" onClick={() => copyTransferValue('account', manualTransferOrder.bankDetails.accountNumber)} className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
+                    {copiedField === 'account' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-[10px] uppercase text-gray-400 font-semibold">Account name</p>
+                  <p className="text-sm font-semibold text-gray-900 break-words">{manualTransferOrder.bankDetails.accountName}</p>
+                </div>
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase text-gray-400 font-semibold">Transfer exactly</p>
+                    <p className="text-xl font-bold text-brand-red">{formatPrice(manualTransferOrder.amount)}</p>
+                  </div>
+                  <button type="button" title="Copy amount" aria-label="Copy transfer amount" onClick={() => copyTransferValue('amount', String(manualTransferOrder.amount))} className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
+                    {copiedField === 'amount' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase text-gray-400 font-semibold">Transfer narration</p>
+                    <p className="text-sm font-bold text-gray-900 font-mono truncate">{manualTransferOrder.orderId}</p>
+                  </div>
+                  <button type="button" title="Copy order reference" aria-label="Copy order reference" onClick={() => copyTransferValue('reference', manualTransferOrder.orderId)} className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">
+                    {copiedField === 'reference' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {manualTransferOrder.bankDetails.note && (
+                <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-5">{manualTransferOrder.bankDetails.note}</p>
+              )}
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-5">
+                Placing the order does not mean payment has been received. The admin will confirm it after checking the Providus account.
+              </p>
+
+              <Button type="button" size="lg" className="w-full" onClick={finishManualTransferInstructions}>
+                Done - track my order
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

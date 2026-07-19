@@ -2,24 +2,31 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle, Package, MessageCircle } from 'lucide-react';
+import { CheckCircle, Clock3, Package, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Suspense } from 'react';
 
 function OrderSuccessContent() {
   const params = useSearchParams();
   const orderId = params.get('order') || 'AGNG-000000';
+  const paymentPending = params.get('payment') === 'pending';
 
   return (
     <div className="max-w-md mx-auto px-4 py-16 text-center">
       <div className="flex justify-center mb-6">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-10 w-10 text-green-600" />
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center ${paymentPending ? 'bg-amber-100' : 'bg-green-100'}`}>
+          {paymentPending
+            ? <Clock3 className="h-10 w-10 text-amber-600" />
+            : <CheckCircle className="h-10 w-10 text-green-600" />}
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Verified</h1>
-      <p className="text-gray-500 mb-2">Your order is confirmed. Thank you for shopping with Asian Grocery Nigeria.</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">{paymentPending ? 'Order Placed - Payment Pending' : 'Payment Verified'}</h1>
+      <p className="text-gray-500 mb-2">
+        {paymentPending
+          ? 'Your order is waiting for manual payment confirmation. We will begin processing it after the transfer is confirmed.'
+          : 'Your order is confirmed. Thank you for shopping with Asian Grocery Nigeria.'}
+      </p>
       <p className="text-sm text-gray-400 mb-6">Order ID: <span className="font-mono font-bold text-gray-700">{orderId}</span></p>
 
       <div className="bg-gray-50 rounded-2xl p-5 mb-8 text-left space-y-3">
@@ -30,8 +37,8 @@ function OrderSuccessContent() {
           </div>
         </div>
         {[
-          { step: '1', text: 'You will receive a confirmation call or WhatsApp message within 30 minutes.' },
-          { step: '2', text: 'We will confirm your items are available and confirm delivery time.' },
+          { step: '1', text: paymentPending ? 'The admin checks the Providus account and confirms your transfer.' : 'You will receive a confirmation call or WhatsApp message within 30 minutes.' },
+          { step: '2', text: paymentPending ? 'Your order status changes to confirmed after payment is received.' : 'We will confirm your items are available and confirm delivery time.' },
           { step: '3', text: 'Your order is packed and dispatched. Lagos orders: 1–2 days.' },
           { step: '4', text: 'Your order arrives at your door!' },
         ].map(({ step, text }) => (

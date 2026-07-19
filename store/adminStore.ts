@@ -34,6 +34,7 @@ export interface AdminOrder {
   deliveryMethod?: 'ship' | 'pickup';
   deliveryAreaId?: string;
   notes?: string;
+  bankDetails?: BankDetails;
 }
 
 export type SlideTransition = 'fade' | 'slide' | 'zoom';
@@ -72,8 +73,10 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
-  if (!res.ok) throw new Error(`API error ${res.status}: ${url}`);
-  return res.json();
+  const data = await res.json().catch(() => null) as (T & { error?: string }) | null;
+  if (!res.ok) throw new Error(data?.error || `API error ${res.status}: ${url}`);
+  if (!data) throw new Error(`Invalid API response: ${url}`);
+  return data;
 }
 
 interface AdminStore {
@@ -94,8 +97,9 @@ interface AdminStore {
   deleteProduct: (id: string) => Promise<void>;
   addProduct: (product: Product) => Promise<void>;
 
-  addOrder: (order: AdminOrder) => Promise<void>;
+  addOrder: (order: AdminOrder) => Promise<AdminOrder>;
   updateOrderStatus: (id: string, status: string) => Promise<void>;
+  confirmOrderPayment: (id: string) => Promise<AdminOrder>;
 
   updateBanner: (id: string, updates: Partial<BannerSlide>) => Promise<void>;
   addBanner: (banner: BannerSlide) => Promise<void>;
@@ -153,10 +157,23 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
   addOrder: async (order) => {
     const created = await api<AdminOrder>('/api/orders', { method: 'POST', body: JSON.stringify(order) });
     set({ orders: [{ ...created, date: order.date }, ...get().orders] });
+    return created;
   },
   updateOrderStatus: async (id, status) => {
     const updated = await api<AdminOrder>(`/api/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
     set({ orders: get().orders.map((o) => (o.id === id ? { ...o, status: updated.status } : o)) });
+  },
+  confirmOrderPayment: async (id) => {
+    const updated = await api<AdminOrder>(`/api/orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'confirm_payment' }),
+    });
+    set({
+      orders: get().orders.map((o) => (o.id === id
+        ? { ...o, ...updated, date: o.date }
+        : o)),
+    });
+    return updated;
   },
 
   updateBanner: async (id, updates) => {

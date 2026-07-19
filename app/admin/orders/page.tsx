@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAdminStore } from '@/store/adminStore';
 import { useAdminAuthStore } from '@/store/adminAuthStore';
 import { formatPrice, formatDate } from '@/lib/utils';
-import { ChevronDown, ChevronUp, Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
 
 const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
 
@@ -39,12 +39,14 @@ function paymentLabel(pm: string) {
 }
 
 export default function AdminOrdersPage() {
-  const { orders, updateOrderStatus, hydrateOrders } = useAdminStore();
+  const { orders, updateOrderStatus, confirmOrderPayment, hydrateOrders } = useAdminStore();
   const { session } = useAdminAuthStore();
   const canWrite = session?.role !== 'product_manager';
   const [filter, setFilter] = useState('All');
   const [saved, setSaved] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [paymentSaving, setPaymentSaving] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     hydrateOrders();
@@ -63,6 +65,22 @@ export default function AdminOrdersPage() {
 
   function toggleExpand(id: string) {
     setExpanded((prev) => (prev === id ? null : id));
+  }
+
+  async function handleConfirmPayment(id: string, total: number) {
+    const confirmed = window.confirm(`Confirm that ${formatPrice(total)} has been received for order ${id}?`);
+    if (!confirmed) return;
+    setPaymentSaving(id);
+    setActionError(null);
+    try {
+      await confirmOrderPayment(id);
+      setSaved(id);
+      setTimeout(() => setSaved(null), 1500);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not confirm payment.');
+    } finally {
+      setPaymentSaving(null);
+    }
   }
 
   return (
@@ -267,8 +285,26 @@ export default function AdminOrdersPage() {
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     {order.payment === 'bank_transfer' && !paymentVerified && (
                       <p className="w-full text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                        Fulfilment is locked until Paystack verifies this transfer.
+                        Awaiting manual bank-transfer confirmation. Fulfilment remains locked until payment is confirmed below.
                       </p>
+                    )}
+                    {actionError && isOpen && (
+                      <p className="w-full text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                        {actionError}
+                      </p>
+                    )}
+                    {canWrite && order.payment === 'bank_transfer' && !paymentVerified && (
+                      <button
+                        type="button"
+                        onClick={() => handleConfirmPayment(order.id, order.total)}
+                        disabled={paymentSaving === order.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-colors disabled:opacity-60"
+                      >
+                        {paymentSaving === order.id
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <CheckCircle2 className="h-3.5 w-3.5" />}
+                        Confirm payment received
+                      </button>
                     )}
                     {/* WhatsApp customer button */}
                     <a
