@@ -11,7 +11,7 @@ const sections = [
     title: '2. Orders & Payment',
     body: [
       'All orders are subject to product availability. We reserve the right to limit quantities, refuse, or cancel any order at our discretion — for example, in cases of suspected fraud or pricing errors.',
-      'We accept secure Paystack payments and manual bank transfers to our displayed business account. Bank-transfer orders remain awaiting payment until an administrator verifies that the transfer has been received; placing an order does not by itself confirm payment.',
+      'We accept secure Paystack payments and manual bank transfers to our displayed business account. Bank-transfer orders remain awaiting payment until we verify that the transfer has been received; placing an order does not by itself confirm payment.',
       'Prices are listed in Nigerian Naira (₦) and may change without prior notice. The price charged will be the price displayed at the time your order is placed.',
     ],
   },

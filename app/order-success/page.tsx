@@ -37,7 +37,7 @@ function OrderSuccessContent() {
           </div>
         </div>
         {[
-          { step: '1', text: paymentPending ? 'The admin checks the Providus account and confirms your transfer.' : 'You will receive a confirmation call or WhatsApp message within 30 minutes.' },
+          { step: '1', text: paymentPending ? 'We check the Providus account and confirm your transfer.' : 'You will receive a confirmation call or WhatsApp message within 30 minutes.' },
           { step: '2', text: paymentPending ? 'Your order status changes to confirmed after payment is received.' : 'We will confirm your items are available and confirm delivery time.' },
           { step: '3', text: 'Your order is packed and dispatched. Lagos orders: 1–2 days.' },
           { step: '4', text: 'Your order arrives at your door!' },

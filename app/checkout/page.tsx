@@ -304,7 +304,7 @@ export default function CheckoutPage() {
       addUserNotif({
         type: 'order',
         title: `Order ${created.id} awaiting payment`,
-        body: `Transfer ${formatPrice(created.total)} to the displayed Providus account. The admin will confirm your payment.`,
+        body: `Transfer ${formatPrice(created.total)} to the displayed Providus account. We will confirm your order once the payment is received.`,
         link: '/orders',
       });
       addAdminNotif({
@@ -708,7 +708,7 @@ export default function CheckoutPage() {
                 <ShieldCheck className="h-5 w-5 text-blue-700 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-blue-900">Manual bank transfer</p>
-                  <p className="text-blue-700 text-xs mt-1 leading-5">Place your order to see our Providus account details. Your order will remain awaiting payment until an admin confirms the transfer.</p>
+                  <p className="text-blue-700 text-xs mt-1 leading-5">Place your order to see our Providus account details. Your order will remain awaiting payment until we confirm the transfer.</p>
                 </div>
               </div>
             </div>
@@ -770,7 +770,7 @@ export default function CheckoutPage() {
 
             <div className="p-5 space-y-4">
               <p className="text-sm text-gray-600 leading-6">
-                Transfer the exact amount to the account below. Your order will be confirmed after the admin verifies that payment was received.
+                Transfer the exact amount to the account below. Your order will be confirmed once we verify that your payment has been received.
               </p>
 
               <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -818,7 +818,7 @@ export default function CheckoutPage() {
                 <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-5">{manualTransferOrder.bankDetails.note}</p>
               )}
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-5">
-                Placing the order does not mean payment has been received. The admin will confirm it after checking the Providus account.
+                Placing the order does not mean payment has been received. We will confirm your order after verifying the payment in our Providus account.
               </p>
 
               <Button type="button" size="lg" className="w-full" onClick={finishManualTransferInstructions}>
